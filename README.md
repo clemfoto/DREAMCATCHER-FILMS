@@ -29,6 +29,14 @@ Entra con `admin@dreamcatcher.test` (Administrador) o `equipo@dreamcatcher.test`
    - `AUTH_RESEND_KEY` y `EMAIL_FROM`: cuenta de Resend con el dominio remitente verificado.
 3. Desplegar. En el móvil: abrir la URL → Compartir → "Añadir a pantalla de inicio" (iPhone) o "Instalar app" (Android).
 
+### Variables de Telegram (automatizaciones)
+
+- `TELEGRAM_BOT_TOKEN`: token del bot creado con @BotFather.
+- `TELEGRAM_ADMIN_CHAT_ID`: ID del grupo de administradores (añade el bot al grupo y escribe `/id`).
+
+Después: app → Más → Automatizaciones → **Conectar el bot** (una vez). Cada persona conecta su Telegram en Más → **Conectar Telegram**.
+Las tareas programadas (`netlify/functions/auto-*.mjs`) solo corren en el despliegue de producción de Netlify.
+
 Para dar acceso a alguien: crear o editar su fila en **Equipo** con `Email` y `Activo` marcado. El `Rol` decide qué ve.
 
 ## Cómo está hecho
@@ -41,6 +49,7 @@ Para dar acceso a alguien: crear o editar su fila en **Equipo** con `Email` y `A
 | `lib/auth.ts`, `lib/token.ts`, `proxy.ts` | Enlace mágico firmado + cookie de sesión de 30 días. El rol se relee de Equipo en cada petición. |
 | `app/(app)/t/[tabla]/…` | Motor genérico: lista, ficha, nuevo y editar para cualquier tabla. |
 | `components/vistas/` | Diseños a medida de Clientes, Tareas, Entrega, Leads, Contabilidad, Gastos y Equipo. |
+| `lib/automatizaciones.ts`, `lib/telegram.ts` | Avisos de clientes, confirmaciones, recordatorios de entrega y leads, informe mensual. |
 | `app/(app)/t/acciones.ts` | Guardar, marcar tarea, convertir lead y borrar (Server Actions con permisos). |
 
 ### Notas

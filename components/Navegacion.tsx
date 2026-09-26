@@ -21,7 +21,8 @@ export default function Navegacion({
   return (
     <>
       <aside className="lateral">
-        <div className="lateral-marca">Dreamcatcher<span>Films</span></div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="lateral-marca" src="/marca/logo-claro.png" alt="Dreamcatcher Films" width={979} height={300} />
         <nav>
           {[...principal, ...mas].map((i) => (
             <Link key={i.id} href={i.href} className={`lateral-item ${activo(i.href) ? "activo" : ""}`}>

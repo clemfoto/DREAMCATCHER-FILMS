@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:mock": "node scripts/mock-airtable.mjs & AIRTABLE_API_URL=http://localhost:4010 AIRTABLE_TOKEN=mock AUTH_SECRET=dev-secret-dev-secret-dev-secret AUTH_DEV_LOGIN=1 next dev",
+    "dev:mock": "node scripts/mock-airtable.mjs & AIRTABLE_API_URL=http://localhost:4010 AIRTABLE_TOKEN=mock AUTH_SECRET=dev-secret-dev-secret-dev-secret AUTH_DEV_LOGIN=1 TELEGRAM_API_URL=http://localhost:4010 TELEGRAM_BOT_TOKEN=prueba TELEGRAM_ADMIN_CHAT_ID=-100admins next dev",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit"

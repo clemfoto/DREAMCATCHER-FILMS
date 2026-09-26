@@ -13,24 +13,40 @@ export function Chip({ nombre }: { nombre: string }) {
   );
 }
 
-export function Avatar({ nombre, titulo }: { nombre: string; titulo?: boolean }) {
+export function Avatar({ nombre, titulo, confirmado }: { nombre: string; titulo?: boolean; confirmado?: boolean }) {
   return (
-    <span className="avatar" title={nombre} aria-label={titulo ? undefined : nombre}>
+    <span
+      className={`avatar ${confirmado ? "confirmado" : ""}`}
+      title={confirmado ? `${nombre} · confirmado` : nombre}
+      aria-label={titulo ? undefined : nombre}
+    >
       {iniciales(nombre)}
     </span>
   );
 }
 
-export function Avatares({ ids, enlaces, conNombres }: { ids: unknown; enlaces: Enlaces; conNombres?: boolean }) {
+export function Avatares({
+  ids,
+  enlaces,
+  conNombres,
+  confirmados,
+}: {
+  ids: unknown;
+  enlaces: Enlaces;
+  conNombres?: boolean;
+  /** IDs de quienes confirmaron su presencia (se marcan con un anillo verde). */
+  confirmados?: unknown;
+}) {
   const lista = Array.isArray(ids) ? (ids as string[]) : [];
   if (!lista.length) return null;
   const nombres = enlaces.nombres[EQUIPO.tabla];
   const personas = lista.map((id) => nombres?.get(id) ?? "?");
+  const ok = new Set(Array.isArray(confirmados) ? (confirmados as string[]) : []);
   return (
     <span className="avatares">
       <span className="avatares-pila">
         {personas.map((n, i) => (
-          <Avatar key={i} nombre={n} />
+          <Avatar key={i} nombre={n} confirmado={ok.has(lista[i])} />
         ))}
       </span>
       {conNombres && <span className="avatares-nombres">{personas.join(", ")}</span>}

@@ -17,6 +17,7 @@ export const TABLAS = {
   contabilidad: "tbl4d283L3x8TVLzy",
   gastos: "tbl5kqfH0Fh7OhSu9",
   equipo: "tblWfnNYeXrB95dQC",
+  informes: "tblWMvMEJgzGdD0mn",
 } as const;
 
 /** Tabla de personas: da acceso a la app y alimenta los avatares. */
@@ -36,7 +37,16 @@ export const TABLAS_ROL_EQUIPO: string[] = [TABLAS.clientes, TABLAS.tareas, TABL
 export const NAV_PRINCIPAL: string[] = [TABLAS.clientes, TABLAS.tareas, TABLAS.entrega, TABLAS.leads];
 
 /** Orden de las tablas dentro de "Más"; las tablas nuevas se añaden al final. */
-export const NAV_MAS: string[] = [TABLAS.contabilidad, TABLAS.gastos, TABLAS.equipo];
+export const NAV_MAS: string[] = [TABLAS.contabilidad, TABLAS.gastos, TABLAS.informes, TABLAS.equipo];
+
+/** Campos de uso interno de las automatizaciones: existen en Airtable pero la app no los muestra. */
+export const CAMPOS_OCULTOS: string[] = [
+  "Notificado",
+  "Invitados Telegram",
+  "Invitaciones Telegram",
+  "Recordatorio enviado",
+  "Recordatorios enviados",
+];
 
 /** Segundos que se reutilizan las lecturas de Airtable antes de volver a pedirlas. */
 export const CACHE_SEGUNDOS = 30;
@@ -109,6 +119,7 @@ export type Galeria = {
 export const GALERIAS: Record<string, Galeria> = {
   [TABLAS.clientes]: {
     vista: "clientes",
+    nombre: "Nombre del Cliente",
     filtro: "Estado del Cliente",
     orden: { campo: "Fecha del Evento", dir: "asc" },
     estado: "Estado del Cliente",
@@ -116,6 +127,7 @@ export const GALERIAS: Record<string, Galeria> = {
     servicio: "Tipo de Servicio",
     venue: "Venue",
     team: "Team Members",
+    confirmados: "Confirmados",
     precio: "Precio",
     relacionados: [
       { campo: "Tareas", titulo: "Tareas" },
@@ -142,6 +154,7 @@ export const GALERIAS: Record<string, Galeria> = {
   },
   [TABLAS.entrega]: {
     vista: "entrega",
+    cliente: "Cliente",
     filtro: "Status Entrega",
     orden: { campo: "Fecha de Entrega", dir: "asc" },
     status: "Status Entrega",
@@ -195,5 +208,57 @@ export const GALERIAS: Record<string, Galeria> = {
     email: "Email",
     telefono: "Teléfono",
     activo: "Activo",
+  },
+  [TABLAS.informes]: {
+    orden: { campo: "Mes", dir: "desc" },
+    tarjeta: ["Ingresos", "Gastos", "Resultado", "Pendiente de cobro"],
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/* Automatizaciones (Telegram y tareas programadas)                     */
+/* ------------------------------------------------------------------ */
+
+export const AUTOMATIZACIONES = {
+  /** La entrega se fija este número de semanas después del evento. */
+  semanasEntrega: 9,
+  /** Días antes de la fecha de entrega en que se avisa al responsable. */
+  diasAvisoEntrega: 7,
+  /** Días entre cada contacto de un lead (2º, 3º y 4º). */
+  diasEntreContactos: 7,
+  /** Estados de cliente que no generan avisos ni invitaciones. */
+  estadosClienteIgnorados: ["Cancelado"],
+  /** Estados de entrega que cuentan como entregada. */
+  estadosEntregaHechos: ["Entregado", "Finalizado"],
+  /** Estados de lead que ya no necesitan recordatorios. */
+  estadosLeadCerrados: ["Ganado", "Perdido"],
+  /** Estado que se pone a una entrega creada automáticamente. */
+  estadoEntregaInicial: "Pendiente",
+  /** Palabras que valen como confirmación escrita en Telegram. */
+  palabrasConfirmar: ["confirmo", "si", "sí", "ok", "confirmado", "✅", "👍"],
+  campos: {
+    telegramChatId: "Telegram Chat ID",
+    clienteSolicitudes: "Solicitudes Especiales",
+    clienteNotificado: "Notificado",
+    clienteInvitados: "Invitados Telegram",
+    clienteConfirmados: "Confirmados",
+    clienteEntrega: "Entrega",
+    entregaRecordatorio: "Recordatorio enviado",
+    leadRecordatorios: "Recordatorios enviados",
+    contaDeposito: "DEPOSITO",
+    contaFechaDeposito: "Fecha Depósito",
+    contaTotal: "Monto Total",
+    contaPendiente: "Monto Pendiente",
+    contaFechaBalance: "Fecha Balance",
+  },
+  informe: {
+    mes: "Mes",
+    ingresos: "Ingresos",
+    gastos: "Gastos",
+    resultado: "Resultado",
+    pendiente: "Pendiente de cobro",
+    eventos: "Eventos del mes",
+    detalle: "Detalle",
+    generado: "Generado",
   },
 };

@@ -17,6 +17,7 @@ const T = {
   conta: "tbl4d283L3x8TVLzy",
   gastos: "tbl5kqfH0Fh7OhSu9",
   equipo: "tblWfnNYeXrB95dQC",
+  informes: "tblWMvMEJgzGdD0mn",
 };
 
 // [id, nombre, tipo, opciones]
@@ -40,6 +41,9 @@ const esquema = {
     ["fldCliTeam000000", "Team Members", "multipleRecordLinks", link(T.equipo, "fldEquEventos000")],
     ["fldCliConta00000", "Contabilidad", "multipleRecordLinks", link(T.conta, "fldConCliente000")],
     ["fldCliGastos0000", "Gastos", "multipleRecordLinks", link(T.gastos, "fldGasCliente000")],
+    ["fldCliConfirm000", "Confirmados", "multipleRecordLinks", link(T.equipo, "fldEquConfirm000")],
+    ["fldCliInvitad000", "Invitados Telegram", "multipleRecordLinks", link(T.equipo, "fldEquInvitad000")],
+    ["fldCliNotific000", "Notificado", "checkbox"],
   ]],
   [T.tareas]: ["Tareas", [
     ["fldTarNombre0000", "Nombre de la Tarea", "singleLineText"],
@@ -59,6 +63,7 @@ const esquema = {
     ["fldEntArchivos00", "Archivos Entregados", "multipleAttachments"],
     ["fldEntCliente000", "Cliente", "multipleRecordLinks", link(T.clientes, "fldCliEntrega000")],
     ["fldEntResp000000", "Responsable Entrega", "multipleRecordLinks", link(T.equipo, "fldEquEntregas00")],
+    ["fldEntRecord0000", "Recordatorio enviado", "checkbox"],
   ]],
   [T.leads]: ["Leads", [
     ["fldLeaNombre0000", "Nombre del Cliente", "singleLineText"],
@@ -71,6 +76,7 @@ const esquema = {
     ["fldLeaC20000000", "2do Contacto", "multipleRecordLinks", link(T.equipo, "fldEquL200000000")],
     ["fldLeaC30000000", "3er Contacto", "multipleRecordLinks", link(T.equipo, "fldEquL300000000")],
     ["fldLeaC40000000", "4to Contacto", "multipleRecordLinks", link(T.equipo, "fldEquL400000000")],
+    ["fldLeaRecord0000", "Recordatorios enviados", "number", { precision: 0 }],
   ]],
   [T.conta]: ["Contabilidad", [
     ["fldConNombre0000", "NOMBRE DEL CLIENTE", "formula", { result: { type: "singleLineText" } }],
@@ -109,6 +115,19 @@ const esquema = {
     ["fldEquL300000000", "Leads (3er contacto)", "multipleRecordLinks", link(T.leads, "fldLeaC30000000")],
     ["fldEquL400000000", "Leads (4to contacto)", "multipleRecordLinks", link(T.leads, "fldLeaC40000000")],
     ["fldEquGastos0000", "Gastos pagados", "multipleRecordLinks", link(T.gastos, "fldGasPagador000")],
+    ["fldEquTelegram01", "Telegram Chat ID", "singleLineText"],
+    ["fldEquConfirm000", "Eventos confirmados", "multipleRecordLinks", link(T.clientes, "fldCliConfirm000")],
+    ["fldEquInvitad000", "Invitaciones Telegram", "multipleRecordLinks", link(T.clientes, "fldCliInvitad000")],
+  ]],
+  [T.informes]: ["Informes", [
+    ["fldInfMes0000000", "Mes", "singleLineText"],
+    ["fldInfIngresos00", "Ingresos", "currency", cur],
+    ["fldInfGastos0000", "Gastos", "currency", cur],
+    ["fldInfResultado0", "Resultado", "currency", cur],
+    ["fldInfPendiente0", "Pendiente de cobro", "currency", cur],
+    ["fldInfEventos000", "Eventos del mes", "number", { precision: 0 }],
+    ["fldInfDetalle000", "Detalle", "multilineText"],
+    ["fldInfGenerado00", "Generado", "date"],
   ]],
 };
 
@@ -124,8 +143,8 @@ const tabla = (tid) => tablas.find((t) => t.id === tid || t.name === tid);
 
 const datos = Object.fromEntries(tablas.map((t) => [t.id, []]));
 const dia = (d) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
-function crear(tid, fields) {
-  const r = { id: id("rec"), createdTime: new Date().toISOString(), fields: {} };
+function crear(tid, fields, hace = 0) {
+  const r = { id: id("rec"), createdTime: new Date(Date.now() - hace * 86400000).toISOString(), fields: {} };
   datos[tid].push(r);
   escribir(tid, r, fields);
   return r;
@@ -136,10 +155,10 @@ const luis = crear(T.equipo, { Nombre: "Luis Méndez", Rol: "Equipo", Email: "eq
 const sofi = crear(T.equipo, { Nombre: "Sofía Ruiz", Rol: "Equipo", Email: "sofia@dreamcatcher.test", Activo: true });
 crear(T.equipo, { Nombre: "Pedro Gil", Rol: "Equipo", Email: "pedro@dreamcatcher.test", Activo: false });
 
-const c1 = crear(T.clientes, { "Nombre del Cliente": "Mariana & Diego", "Fecha del Evento": dia(12), "Tipo de Servicio": "Boda", Venue: "Hacienda San Gabriel", Precio: 48000, "Estado del Cliente": "Confirmado", "Team Members": [ana.id, luis.id], Prioridad: "Alta", "Solicitudes Especiales": "Drone en la ceremonia.\nVideo corto para redes." });
-const c2 = crear(T.clientes, { "Nombre del Cliente": "Lucía — XV años", "Fecha del Evento": dia(30), "Tipo de Servicio": "Cumpleaños", Venue: "Salón Jardín Real", Precio: 22000, "Estado del Cliente": "Pendiente de Pago", "Team Members": [sofi.id] });
-const c3 = crear(T.clientes, { "Nombre del Cliente": "Congreso TecnoMX", "Fecha del Evento": dia(-20), "Tipo de Servicio": "Conferencia", Venue: "Expo Guadalajara", Precio: 65000, "Estado del Cliente": "En Proceso", "Team Members": [ana.id, sofi.id, luis.id] });
-const c4 = crear(T.clientes, { "Nombre del Cliente": "Valeria & Andrés", "Fecha del Evento": dia(-75), "Tipo de Servicio": "Boda", Venue: "Casa Lamm", Precio: 52000, "Estado del Cliente": "Finalizado", "Team Members": [ana.id] });
+const c1 = crear(T.clientes, { "Nombre del Cliente": "Mariana & Diego", "Fecha del Evento": dia(12), "Tipo de Servicio": "Boda", Venue: "Hacienda San Gabriel", Precio: 48000, "Estado del Cliente": "Confirmado", "Team Members": [ana.id, luis.id], Notificado: true, Prioridad: "Alta", "Solicitudes Especiales": "Drone en la ceremonia.\nVideo corto para redes." });
+const c2 = crear(T.clientes, { "Nombre del Cliente": "Lucía — XV años", "Fecha del Evento": dia(30), "Tipo de Servicio": "Cumpleaños", Venue: "Salón Jardín Real", Precio: 22000, "Estado del Cliente": "Pendiente de Pago", "Team Members": [sofi.id], Notificado: true });
+const c3 = crear(T.clientes, { "Nombre del Cliente": "Congreso TecnoMX", "Fecha del Evento": dia(-20), "Tipo de Servicio": "Conferencia", Venue: "Expo Guadalajara", Precio: 65000, "Estado del Cliente": "En Proceso", "Team Members": [ana.id, sofi.id, luis.id], Notificado: true });
+const c4 = crear(T.clientes, { "Nombre del Cliente": "Valeria & Andrés", "Fecha del Evento": dia(-75), "Tipo de Servicio": "Boda", Venue: "Casa Lamm", Precio: 52000, "Estado del Cliente": "Finalizado", "Team Members": [ana.id], Notificado: true });
 
 crear(T.tareas, { "Nombre de la Tarea": "Llamada de planeación con los novios", "Cliente Asociado": [c1.id], "Fecha Límite": dia(1), "Estado de Tarea": "Por Hacer", Prioridad: "Alta", Responsables: [ana.id] });
 crear(T.tareas, { "Nombre de la Tarea": "Cargar baterías y tarjetas", "Cliente Asociado": [c1.id], "Fecha Límite": dia(11), "Estado de Tarea": "Por Hacer", Responsables: [luis.id] });
@@ -150,8 +169,8 @@ crear(T.tareas, { "Nombre de la Tarea": "Revisar música con licencia", "Estado 
 crear(T.entrega, { Cliente: [c3.id], "Fecha de Entrega": dia(2), "Status Entrega": ["Revisando Cambios"], "Cambios Deseados": "Quitar el logo del patrocinador en el minuto 2:10 y subir el volumen de la keynote.", "Responsable Entrega": [sofi.id], "Link de Entrega": "https://vimeo.com/ejemplo" });
 crear(T.entrega, { Cliente: [c4.id], "Fecha de Entrega": dia(-40), "Status Entrega": ["Entregado"], "Responsable Entrega": [ana.id] });
 
-crear(T.leads, { "Nombre del Cliente": "Fernanda & Iván", "Fecha del Evento": dia(200), "Servicio Requerido": "Boda", "Estado Lead": "En Negociación", "1er Contacto": [ana.id], "2do Contacto": [luis.id] });
-crear(T.leads, { "Nombre del Cliente": "Startup Nube", "Fecha del Evento": dia(60), "Servicio Requerido": "Promocional", "Estado Lead": "Nuevo", "1er Contacto": [sofi.id], "Notas de Lead": "Quieren un video de 60 s para lanzamiento." });
+crear(T.leads, { "Nombre del Cliente": "Fernanda & Iván", "Fecha del Evento": dia(200), "Servicio Requerido": "Boda", "Estado Lead": "En Negociación", "1er Contacto": [ana.id], "2do Contacto": [luis.id] }, 15);
+crear(T.leads, { "Nombre del Cliente": "Startup Nube", "Fecha del Evento": dia(60), "Servicio Requerido": "Promocional", "Estado Lead": "Nuevo", "1er Contacto": [sofi.id], "Notas de Lead": "Quieren un video de 60 s para lanzamiento." }, 8);
 
 crear(T.conta, { Cliente: [c1.id], DEPOSITO: 15000, "Fecha Depósito": dia(-30), "Fecha Balance": dia(5) });
 crear(T.conta, { Cliente: [c2.id], DEPOSITO: 5000, "Fecha Depósito": dia(-10), "Fecha Balance": dia(25) });
@@ -159,6 +178,8 @@ crear(T.conta, { Cliente: [c4.id], DEPOSITO: 52000, "Fecha Depósito": dia(-100)
 
 crear(T.gastos, { GASTOS: "Gasolina viaje a Guadalajara", Fecha: dia(-21), Cantidad: 1450, Categoría: "Transporte", "Forma de Pago": "Tarjeta", Cliente: [c3.id], "Persona que hizo el pago": [luis.id] });
 crear(T.gastos, { GASTOS: "Adobe Creative Cloud", Fecha: dia(-5), Cantidad: 1199, Categoría: "Software y suscripciones", "Forma de Pago": "Tarjeta", "Persona que hizo el pago": [ana.id] });
+
+const telegram = [];
 
 /* ---------- lógica ---------- */
 
@@ -210,6 +231,14 @@ http
     const url = new URL(req.url, `http://localhost:${PUERTO}`);
     const partes = url.pathname.split("/").filter(Boolean); // v0, ...
     try {
+      if (partes[0]?.startsWith("bot")) {
+        const metodo = partes[1];
+        if (metodo === "getMe") return responder(res, 200, { ok: true, result: { username: "dreamcatcher_prueba_bot" } });
+        telegram.push({ metodo, ...json });
+        console.log(`[telegram] ${metodo} → ${json.chat_id ?? ""} ${String(json.text ?? json.url ?? "").replace(/\n/g, " / ").slice(0, 160)}`);
+        return responder(res, 200, { ok: true, result: { message_id: telegram.length, url: "", pending_update_count: 0 } });
+      }
+      if (partes[0] === "__telegram") return responder(res, 200, telegram);
       if (partes[1] === "meta") return responder(res, 200, { tables: tablas });
 
       if (partes[4] === "uploadAttachment") {

@@ -1,6 +1,8 @@
 "use server";
 import { forbidden, notFound, redirect } from "next/navigation";
 import { updateTag } from "next/cache";
+import { after } from "next/server";
+import { headers } from "next/headers";
 import {
   actualizarRegistro,
   borrarRegistro,
@@ -13,7 +15,25 @@ import {
 import { requireUsuario, type Usuario } from "@/lib/auth";
 import { campo, campoVisible, esAdmin, esSoloLectura, puedeVerTabla, rutaTabla, tablaPorId } from "@/lib/esquema";
 import { localAIso } from "@/lib/formato";
+import { moverEntregas, procesarClientes } from "@/lib/automatizaciones";
+import { telegramConfigurado } from "@/lib/telegram";
 import { GALERIAS, TABLAS } from "@/config/galerias";
+
+/** Tras guardar un cliente, lanza sus automatizaciones sin hacer esperar al usuario. */
+async function automatizarCliente(clienteId: string, fechaAntes: unknown, fechaDespues: unknown) {
+  const h = await headers();
+  const base = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
+  after(async () => {
+    try {
+      if (fechaAntes && typeof fechaDespues === "string" && fechaDespues && fechaAntes !== fechaDespues) {
+        await moverEntregas(clienteId, fechaDespues);
+      }
+      if (telegramConfigurado()) await procesarClientes(base);
+    } catch (e) {
+      console.error("[automatizaciones] tras guardar cliente", e);
+    }
+  });
+}
 
 export type EstadoForm = { error?: string };
 
@@ -82,6 +102,8 @@ export async function guardarRegistro(
   }
 
   let id = recordId;
+  const campoFecha = t.id === TABLAS.clientes ? String(GALERIAS[TABLAS.clientes].fecha) : "";
+  const fechaAntes = recordId && campoFecha ? (await getRegistro(t.id, recordId))?.fields[campoFecha] : undefined;
   try {
     if (recordId) await actualizarRegistro(t.id, recordId, fields);
     else id = (await crearRegistro(t.id, fields)).id;
@@ -89,6 +111,7 @@ export async function guardarRegistro(
     return { error: (e as Error).message };
   }
   refrescar(t);
+  if (t.id === TABLAS.clientes && id) await automatizarCliente(id, fechaAntes, fields[campoFecha]);
   redirect(`${rutaTabla(t)}/${id}`);
 }
 
@@ -133,6 +156,7 @@ export async function convertirLead(recordId: string): Promise<void> {
   });
   refrescar(leads);
   refrescar(clientes);
+  await automatizarCliente(cliente.id, undefined, undefined);
   redirect(`${rutaTabla(clientes)}/${cliente.id}`);
 }
 

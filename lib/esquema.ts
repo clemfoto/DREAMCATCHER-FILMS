@@ -1,6 +1,6 @@
 import "server-only";
 import { getEsquema, getRegistros, type Field, type Table } from "@/lib/airtable";
-import { EQUIPO, NAV_MAS, NAV_PRINCIPAL, TABLAS_ROL_EQUIPO } from "@/config/galerias";
+import { CAMPOS_OCULTOS, EQUIPO, NAV_MAS, NAV_PRINCIPAL, TABLAS_ROL_EQUIPO } from "@/config/galerias";
 import type { Usuario } from "@/lib/auth";
 
 /** Tipos calculados por Airtable: se muestran pero no se editan. */
@@ -51,7 +51,7 @@ export function puedeVerTabla(u: Usuario, tableId: string): boolean {
  * el usuario puede ver esa tabla (las personas de Equipo siempre se ven).
  */
 export function campoVisible(u: Usuario, f: Field): boolean {
-  if (esAntiguo(f)) return false;
+  if (esAntiguo(f) || CAMPOS_OCULTOS.includes(f.name)) return false;
   const destino = f.options?.linkedTableId;
   if (f.type === "multipleRecordLinks" && destino) {
     return destino === EQUIPO.tabla || puedeVerTabla(u, destino);

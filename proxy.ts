@@ -13,6 +13,7 @@ export function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!login|auth/|offline|_next/|icons/|manifest.webmanifest|sw.js|favicon.ico|apple-icon|icon).*)",
+    // Telegram y las tareas programadas se autentican con su propio secreto.
+    "/((?!login|auth/|offline|_next/|icons/|marca/|api/telegram|api/automatizaciones|manifest.webmanifest|sw.js|favicon.ico|apple-icon|icon).*)",
   ],
 };

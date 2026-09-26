@@ -72,8 +72,9 @@ Navegación móvil: barra inferior con Clientes, Tareas, Entrega, Leads y "Más"
 
 ## Diseño (del prototipo aprobado)
 
-- Fondo `#F6F4EF`; tarjetas `#FFFFFF` con borde `#E3DED4`; texto `#1C1B19`; texto secundario `#5E584F`.
-- Acento `#A04A18` (botones principales); barra lateral de escritorio `#1C1B19`.
+- Logo en `public/marca/` (`logo.png` oscuro, `logo-claro.png` para fondos oscuros, `monograma.png` para iconos).
+- Paleta a juego con el logo: fondo `#F2F5F5`; tarjetas `#FFFFFF` con borde `#DDE4E5`; texto `#2B2F32`; texto secundario `#687175`.
+- Acento pizarra `#4A565D` (botones principales); azul niebla del logo `#E4ECED`; barra lateral de escritorio `#2B3033`.
 - Tipografía: Fraunces para títulos y nombres de clientes; Hanken Grotesk para el resto.
 - Esquinas de 12–16 px, botones táctiles de al menos 44 px e inputs de 16 px (para que iOS no haga zoom).
 - Chips de estado: Reservado `#E4ECF5`/`#274766`, Anticipo pagado `#FBEBD9`/`#7A3F0C`, En edición `#EFE6F3`/`#55336A`, Entregado `#E3EEDF`/`#2F5226`. Las opciones nuevas de un select toman un color por defecto.
@@ -88,7 +89,18 @@ Navegación móvil: barra inferior con Clientes, Tareas, Entrega, Leads y "Más"
 5. Diseño a medida de Clientes, Tareas, Entrega y Leads, en móvil primero.
 6. Contabilidad, Gastos y Equipo.
 7. Pruebas en iPhone y Android reales, instalación como app y ajustes.
-8. Fase 2 (fuera de este alcance): automatizaciones con Make y bot de Telegram.
+8. Fase 2: automatizaciones con bot de Telegram, dentro de la propia app (ver "Automatizaciones").
+
+## Automatizaciones
+
+Viven en la app (`lib/automatizaciones.ts`, `lib/telegram.ts`), no en Make. Las ejecutan tareas programadas de Netlify (`netlify/functions/auto-*.mjs`) que llaman a `/api/automatizaciones`; el bot recibe mensajes en `/api/telegram`. Parámetros en `AUTOMATIZACIONES` de `config/galerias.ts`.
+
+- Nuevo cliente → aviso al grupo de administradores y entrega creada a 9 semanas del evento; si cambia la fecha del evento, la entrega pendiente se mueve.
+- Team members → invitación por Telegram con botón (o respuesta "confirmo"); se guarda en `Clientes.Confirmados` y se avisa a administradores.
+- Entregas → aviso al responsable 7 días antes (o a administradores si no hay responsable con Telegram).
+- Leads → recordatorio a administradores a los 7, 14 y 21 días para el 2º, 3º y 4º contacto.
+- Día 1 de cada mes → informe contable en la tabla Informes y por Telegram.
+- Campos internos ocultos en la app: `CAMPOS_OCULTOS`.
 
 Trabajar fase por fase, con una versión desplegada y probable en el móvil al final de cada una.
 

@@ -56,7 +56,7 @@ function TarjetaCliente({ r, ctx }: { r: AirRecord; ctx: Contexto }) {
       </p>
       {venue && <p className="tarjeta-meta">{venue}</p>}
       <div className="tarjeta-pie">
-        <Avatares ids={val(r, cfg(ctx, "team"))} enlaces={ctx.enlaces} />
+        <Avatares ids={val(r, cfg(ctx, "team"))} enlaces={ctx.enlaces} confirmados={val(r, cfg(ctx, "confirmados"))} />
         {precio && <span className="precio">{precio}</span>}
       </div>
     </Link>
