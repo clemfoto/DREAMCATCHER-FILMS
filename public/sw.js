@@ -1,6 +1,6 @@
 // Service worker mínimo: hace la app instalable, guarda los recursos estáticos
 // y muestra una página "Sin conexión" si no hay red. Los datos siempre van a la red.
-const CACHE = "dcf-v1";
+const CACHE = "dcf-v2";
 const OFFLINE = "/offline";
 
 self.addEventListener("install", (e) => {
@@ -19,7 +19,9 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
+  // Solo los archivos de /_next/static llevan huella en el nombre y nunca cambian.
+  // Los iconos no se guardan: si el móvil guarda uno viejo, Android no deja instalar la app.
+  if (url.pathname.startsWith("/_next/static/")) {
     e.respondWith(
       caches.match(req).then(
         (hit) =>
