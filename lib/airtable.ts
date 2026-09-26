@@ -113,6 +113,9 @@ async function leerRegistros(tableId: string): Promise<AirRecord[]> {
   return out;
 }
 
+/** Lectura directa, sin caché (para el login, donde un dato viejo bloquearía el acceso). */
+export const getRegistrosSinCache = leerRegistros;
+
 /** Todos los registros de una tabla (cacheados unos segundos, se invalidan al escribir). */
 export function getRegistros(tableId: string): Promise<AirRecord[]> {
   return unstable_cache(() => leerRegistros(tableId), ["airtable-registros", BASE, tableId], {

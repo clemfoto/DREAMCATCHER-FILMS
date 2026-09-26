@@ -4,7 +4,7 @@ import { COOKIE_SESION, DURACION_SESION_S, firmarToken, verificarToken } from "@
 
 export async function GET(req: NextRequest) {
   const p = verificarToken(req.nextUrl.searchParams.get("token") ?? undefined, "enlace");
-  const miembro = p && (await miembroPorEmail(p.email));
+  const miembro = p && (await miembroPorEmail(p.email, true));
   if (!p || !miembro) return NextResponse.redirect(new URL("/login?error=1", req.url));
 
   const res = NextResponse.redirect(new URL("/", req.url));
