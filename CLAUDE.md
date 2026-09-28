@@ -13,7 +13,7 @@ App interna de gestión para una productora de video (bodas y eventos). La usan 
 - Next.js (App Router) + TypeScript, desplegado en Vercel.
 - PWA: manifest, service worker, iconos, `viewport-fit=cover` y safe areas para iPhone.
 - Airtable como único backend. **Nunca** llamar a Airtable desde el navegador: todas las llamadas pasan por rutas de servidor (Route Handlers / Server Actions), con el token en variables de entorno.
-- Autenticación: Auth.js con enlace mágico por email (proveedor de email, p. ej. Resend). Solo pueden entrar los emails que existen en la tabla **Equipo** con `Activo` marcado. El rol sale de `Equipo.Rol`.
+- Autenticación: email + contraseña con **código de invitación personal** (Equipo → `Código de invitación`, `Estado invitación` Pendiente/Usada/Cancelada, `Clave (cifrada)` con scrypt). El administrador genera, reenvía o cancela el código desde la ficha de cada persona; cancelar cierra su sesión. Solo pueden entrar los emails de **Equipo** con `Activo` marcado. El rol sale de `Equipo.Rol`.
 - Estilos: CSS propio o Tailwind, respetando los tokens de diseño de abajo.
 
 ### Variables de entorno
@@ -22,8 +22,8 @@ App interna de gestión para una productora de video (bodas y eventos). La usan 
 AIRTABLE_TOKEN=            # Personal Access Token con scopes: data.records:read, data.records:write, schema.bases:read
 AIRTABLE_BASE_ID=appUZ9M8sraJsTTFv
 AUTH_SECRET=
-AUTH_RESEND_KEY=
-EMAIL_FROM=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_ADMIN_CHAT_ID=
 ```
 
 ### Límites de Airtable a tener en cuenta
@@ -43,7 +43,9 @@ Consultar siempre el esquema real con la Metadata API; esta tabla es una referen
 | Leads | tblnZCa7gevintf0n | Nombre del Cliente | 1er–4to Contacto → Equipo; Relacionado a Cliente → Clientes |
 | Contabilidad | tbl4d283L3x8TVLzy | NOMBRE DEL CLIENTE (fórmula de `Cliente`) | Monto Total = rollup del Precio del cliente; Monto Pendiente = fórmula |
 | Gastos | tbl5kqfH0Fh7OhSu9 | GASTOS | Categoría, Comprobante (adjuntos), Cliente → Clientes, Persona que hizo el pago → Equipo |
-| Equipo | tblWfnNYeXrB95dQC | Nombre | Rol (Administrador / Equipo), Email, Teléfono, Usuario Telegram, Activo |
+| Equipo | tblWfnNYeXrB95dQC | Nombre | Rol (Administrador / Equipo), Email, Teléfono, Usuario Telegram, Activo, campos de invitación (ocultos) |
+| Pagos | tbl1ToFFfPTxgwafa | Concepto | Tipo (Depósito/Balance/Otro), Monto, Moneda (MXN/USD), Fecha de cobro, Pagado, Fecha de pago, Cliente |
+| Citas | tblcNynnivIT8nJjy | Título | Fecha (con hora), Cliente, Con → Equipo, Lugar |
 
 Reglas:
 - Los campos calculados (fórmula, rollup, lookup, count) son de solo lectura en la app.
@@ -68,7 +70,11 @@ Motor genérico: cualquier tabla de la base se muestra como lista de tarjetas, c
 - **Gastos** (solo administrador): lista con categoría, fecha, quién pagó y monto; botón destacado "Foto del ticket" que sube la imagen a Comprobante.
 - **Equipo** (solo administrador): personas, rol y número de eventos.
 
-Navegación móvil: barra inferior con Clientes, Tareas, Entrega, Leads y "Más" (Contabilidad, Gastos, Equipo y cualquier tabla nueva que aparezca en la base). En escritorio, barra lateral.
+- **Inicio** (`/inicio`): "Lo que necesita decisión": entregas "En revisión" (visto bueno → "Aprobada"), gastos por encima de `DECISIONES.limiteGasto` (los aprueba un socio distinto de quien pagó), leads sin 1er contacto en 24 h, pagos vencidos hace más de 7 días, clientes próximos sin team y fechas duplicadas. Más "Tus próximos eventos" y "Tus tareas".
+- **Calendario** (`/calendario`): mes con eventos, leads, entregas, citas, vencimientos de tareas y cobros (admin); enlace `webcal://…/api/calendario/<token>.ics` personal para suscribirse.
+- **Pagos** (solo administrador): pendiente por moneda, vencidos, próximos y pagados; "Marcar pagado". El informe mensual usa Pagos cuando tiene registros.
+
+Navegación móvil: barra inferior con Inicio, Clientes, Tareas, Entrega, Leads y "Más" (Calendario, Pagos, Citas, Gastos, Contabilidad, Informes, Equipo y cualquier tabla nueva). En escritorio, barra lateral.
 
 ## Diseño (del prototipo aprobado)
 
@@ -84,7 +90,7 @@ Navegación móvil: barra inferior con Clientes, Tareas, Entrega, Leads y "Más"
 
 1. Proyecto base: Next.js, PWA, despliegue en Vercel y variables de entorno.
 2. Cliente de Airtable en el servidor: lectura del esquema, listado, detalle, creación y edición de registros, subida de adjuntos y caché.
-3. Login con enlace mágico y control por rol a partir de Equipo.
+3. Login con email, contraseña y código de invitación, y control por rol a partir de Equipo.
 4. Motor genérico de galerías (lista, ficha y formulario por tipo de campo).
 5. Diseño a medida de Clientes, Tareas, Entrega y Leads, en móvil primero.
 6. Contabilidad, Gastos y Equipo.

@@ -1,26 +1,38 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { forbidden, redirect } from "next/navigation";
-import { getRegistros, getRegistrosSinCache } from "@/lib/airtable";
+import { getRegistros, getRegistrosSinCache, type AirRecord } from "@/lib/airtable";
 import { EQUIPO, type Rol } from "@/config/galerias";
 import { COOKIE_SESION, verificarToken } from "@/lib/token";
 
 export type Usuario = { id: string; nombre: string; email: string; rol: Rol };
 
-/**
- * Busca un miembro activo de Equipo por email. Es la única lista de acceso a la app.
- * `fresco` lee Airtable sin caché (login), para que un alta nueva funcione al momento.
- */
-export async function miembroPorEmail(email: string, fresco = false): Promise<Usuario | null> {
+/** Una persona puede entrar si está Activa en Equipo y su invitación no está cancelada. */
+export function tieneAcceso(r: AirRecord): boolean {
+  return r.fields[EQUIPO.activo] === true && String(r.fields[EQUIPO.estadoInvitacion] ?? "") !== EQUIPO.invitacion.cancelada;
+}
+
+export function aUsuario(r: AirRecord): Usuario {
+  const email = String(r.fields[EQUIPO.email] ?? "").trim().toLowerCase();
+  const rol = String(r.fields[EQUIPO.rol] ?? "") === EQUIPO.rolAdmin ? "Administrador" : "Equipo";
+  return { id: r.id, nombre: String(r.fields[EQUIPO.nombre] ?? email), email, rol };
+}
+
+/** Fila de Equipo con ese email (tenga o no acceso). `fresco` lee Airtable sin caché. */
+export async function filaPorEmail(email: string, fresco = false): Promise<AirRecord | null> {
   const buscado = email.trim().toLowerCase();
   if (!buscado) return null;
   const regs = await (fresco ? getRegistrosSinCache : getRegistros)(EQUIPO.tabla);
-  const r = regs.find(
-    (x) => String(x.fields[EQUIPO.email] ?? "").trim().toLowerCase() === buscado && x.fields[EQUIPO.activo] === true,
-  );
-  if (!r) return null;
-  const rol = String(r.fields[EQUIPO.rol] ?? "") === EQUIPO.rolAdmin ? "Administrador" : "Equipo";
-  return { id: r.id, nombre: String(r.fields[EQUIPO.nombre] ?? buscado), email: buscado, rol };
+  return regs.find((x) => String(x.fields[EQUIPO.email] ?? "").trim().toLowerCase() === buscado) ?? null;
+}
+
+/**
+ * Miembro con acceso a la app por su email. Equipo es la única lista de acceso:
+ * desactivar a alguien o cancelar su invitación le cierra la sesión.
+ */
+export async function miembroPorEmail(email: string, fresco = false): Promise<Usuario | null> {
+  const r = await filaPorEmail(email, fresco);
+  return r && tieneAcceso(r) ? aUsuario(r) : null;
 }
 
 /**

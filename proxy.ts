@@ -14,6 +14,6 @@ export function proxy(req: NextRequest) {
 export const config = {
   matcher: [
     // Telegram y las tareas programadas se autentican con su propio secreto.
-    "/((?!login|auth/|offline|_next/|icons/|marca/|api/telegram|api/automatizaciones|manifest.webmanifest|sw.js|favicon.ico|apple-icon|icon).*)",
+    "/((?!login|registro|auth/|offline|_next/|icons/|marca/|api/telegram|api/automatizaciones|api/calendario|manifest.webmanifest|sw.js|favicon.ico|apple-icon|icon).*)",
   ],
 };

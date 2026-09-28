@@ -2,8 +2,8 @@ import "server-only";
 import { forbidden, notFound } from "next/navigation";
 import { getEsquema, type Field, type Table } from "@/lib/airtable";
 import { requireUsuario, type Usuario } from "@/lib/auth";
-import { GALERIAS, type Galeria } from "@/config/galerias";
-import { camposVisibles, nombresEnlazados, puedeVerTabla, rutaTabla, tablaPorSlug } from "@/lib/esquema";
+import { EQUIPO, GALERIAS, TABLAS, type Galeria } from "@/config/galerias";
+import { camposVisibles, nombresDe, nombresEnlazados, puedeVerTabla, rutaTabla, tablaPorSlug } from "@/lib/esquema";
 
 /** Lo que necesitan los componentes para pintar enlaces entre tablas. */
 export type Enlaces = {
@@ -44,4 +44,13 @@ export async function contextoTabla(slugTabla: string): Promise<Contexto> {
 export function cfg(ctx: Contexto, clave: string): Field | undefined {
   const nombre = ctx.g[clave];
   return typeof nombre === "string" ? ctx.campos.find((f) => f.name === nombre) : undefined;
+}
+
+/** Enlaces para páginas que mezclan tablas (inicio, calendario): nombres de Equipo y Clientes y rutas visibles. */
+export async function enlacesGlobales(u: Usuario): Promise<Enlaces> {
+  const esquema = await getEsquema();
+  const rutas: Record<string, string> = {};
+  for (const x of esquema) if (puedeVerTabla(u, x.id)) rutas[x.id] = rutaTabla(x);
+  const [equipo, clientes] = await Promise.all([nombresDe(EQUIPO.tabla), nombresDe(TABLAS.clientes)]);
+  return { nombres: { [EQUIPO.tabla]: equipo, [TABLAS.clientes]: clientes }, rutas };
 }

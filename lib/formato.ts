@@ -1,4 +1,4 @@
-import { COLORES_OPCION, COLOR_POR_DEFECTO, MONEDA, ZONA_HORARIA } from "@/config/galerias";
+import { COLORES_OPCION, COLOR_POR_DEFECTO, MONEDA, MONEDAS, ZONA_HORARIA } from "@/config/galerias";
 import type { Field } from "@/lib/airtable";
 
 /** "2026-10-12" → Date a mediodía local (evita saltos de día por zona horaria). */
@@ -111,4 +111,24 @@ export function localAIso(local: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(local)) return null;
   const comoUTC = new Date(`${local.slice(0, 16)}:00Z`);
   return new Date(comoUTC.getTime() - desfaseMin(comoUTC) * 60000).toISOString();
+}
+
+/** Dinero en la moneda indicada ("MXN" → $1,200 · "USD" → US$1,200). */
+export function dinero(v: unknown, codigo?: unknown, decimales?: number): string {
+  const n = typeof v === "number" ? v : Number(v);
+  if (v == null || v === "" || isNaN(n)) return "";
+  const cod = texto(codigo) || Object.keys(MONEDAS)[0];
+  const simbolo = MONEDAS[cod]?.simbolo ?? `${cod} `;
+  const dec = decimales ?? (Number.isInteger(n) ? 0 : 2);
+  return `${n < 0 ? "−" : ""}${simbolo}${numero(Math.abs(n), dec)}`;
+}
+
+/** "lunes, 28 de septiembre" → "Lunes, 28 de septiembre". */
+export const mayuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Suma "YYYY-MM-DD" + días. */
+export function sumarDias(iso: string, dias: number): string {
+  const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
 }

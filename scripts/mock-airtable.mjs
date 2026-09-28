@@ -1,6 +1,13 @@
 // Servidor falso de Airtable para desarrollo local (npm run dev:mock).
 // Imita el esquema real de la base con datos inventados; los cambios viven en memoria.
 import http from "node:http";
+import { randomBytes, scryptSync } from "node:crypto";
+
+// Misma forma que lib/clave.ts: "scrypt$sal$hash".
+const cifrar = (clave) => {
+  const sal = randomBytes(16);
+  return `scrypt$${sal.toString("base64url")}$${scryptSync(clave, sal, 32).toString("base64url")}`;
+};
 
 const PUERTO = 4010;
 let n = 0;
@@ -18,6 +25,8 @@ const T = {
   gastos: "tbl5kqfH0Fh7OhSu9",
   equipo: "tblWfnNYeXrB95dQC",
   informes: "tblWMvMEJgzGdD0mn",
+  pagos: "tbl1ToFFfPTxgwafa",
+  citas: "tblcNynnivIT8nJjy",
 };
 
 // [id, nombre, tipo, opciones]
@@ -44,6 +53,9 @@ const esquema = {
     ["fldCliConfirm000", "Confirmados", "multipleRecordLinks", link(T.equipo, "fldEquConfirm000")],
     ["fldCliInvitad000", "Invitados Telegram", "multipleRecordLinks", link(T.equipo, "fldEquInvitad000")],
     ["fldCliNotific000", "Notificado", "checkbox"],
+    ["fldCliMoneda0000", "Moneda", "singleSelect", ch("MXN", "USD")],
+    ["fldCliPagos00000", "Pagos", "multipleRecordLinks", link(T.pagos, "fldPagCliente000")],
+    ["fldCliCitas00000", "Citas", "multipleRecordLinks", link(T.citas, "fldCitCliente000")],
   ]],
   [T.tareas]: ["Tareas", [
     ["fldTarNombre0000", "Nombre de la Tarea", "singleLineText"],
@@ -57,7 +69,7 @@ const esquema = {
   [T.entrega]: ["Entrega", [
     ["fldEntNombre0000", "NOMBRE DEL CLIENTE", "formula", { result: { type: "singleLineText" } }],
     ["fldEntFecha00000", "Fecha de Entrega", "date"],
-    ["fldEntStatus0000", "Status Entrega", "multipleSelects", ch("Pendiente", "Enviado", "Revisando Cambios", "Finalizado", "Entregado", "En revisión")],
+    ["fldEntStatus0000", "Status Entrega", "multipleSelects", ch("Pendiente", "Enviado", "Revisando Cambios", "Finalizado", "Entregado", "En revisión", "Aprobada")],
     ["fldEntCambios000", "Cambios Deseados", "multilineText"],
     ["fldEntLink000000", "Link de Entrega", "url"],
     ["fldEntArchivos00", "Archivos Entregados", "multipleAttachments"],
@@ -98,6 +110,8 @@ const esquema = {
     ["fldGasComprob000", "Comprobante", "multipleAttachments"],
     ["fldGasCliente000", "Cliente", "multipleRecordLinks", link(T.clientes, "fldCliGastos0000")],
     ["fldGasPagador000", "Persona que hizo el pago", "multipleRecordLinks", link(T.equipo, "fldEquGastos0000")],
+    ["fldGasAprobac000", "Aprobación", "singleSelect", ch("Pendiente", "Aprobado", "Rechazado")],
+    ["fldGasAprobPor00", "Aprobado por", "multipleRecordLinks", link(T.equipo, "fldEquGasAprob00")],
   ]],
   [T.equipo]: ["Equipo", [
     ["fldEquNombre0000", "Nombre", "singleLineText"],
@@ -118,6 +132,11 @@ const esquema = {
     ["fldEquTelegram01", "Telegram Chat ID", "singleLineText"],
     ["fldEquConfirm000", "Eventos confirmados", "multipleRecordLinks", link(T.clientes, "fldCliConfirm000")],
     ["fldEquInvitad000", "Invitaciones Telegram", "multipleRecordLinks", link(T.clientes, "fldCliInvitad000")],
+    ["fldEquCodigo0000", "Código de invitación", "singleLineText"],
+    ["fldEquEstInv0000", "Estado invitación", "singleSelect", ch("Pendiente", "Usada", "Cancelada")],
+    ["fldEquClave00000", "Clave (cifrada)", "singleLineText"],
+    ["fldEquGasAprob00", "Gastos aprobados", "multipleRecordLinks", link(T.gastos, "fldGasAprobPor00")],
+    ["fldEquCitas00000", "Citas", "multipleRecordLinks", link(T.citas, "fldCitCon0000000")],
   ]],
   [T.informes]: ["Informes", [
     ["fldInfMes0000000", "Mes", "singleLineText"],
@@ -128,6 +147,27 @@ const esquema = {
     ["fldInfEventos000", "Eventos del mes", "number", { precision: 0 }],
     ["fldInfDetalle000", "Detalle", "multilineText"],
     ["fldInfGenerado00", "Generado", "date"],
+    ["fldInfIngUsd0000", "Ingresos USD", "currency", { symbol: "US$", precision: 0 }],
+    ["fldInfPendUsd000", "Pendiente USD", "currency", { symbol: "US$", precision: 0 }],
+  ]],
+  [T.pagos]: ["Pagos", [
+    ["fldPagConcepto00", "Concepto", "singleLineText"],
+    ["fldPagTipo000000", "Tipo", "singleSelect", ch("Depósito", "Balance", "Otro")],
+    ["fldPagMonto00000", "Monto", "number", { precision: 2 }],
+    ["fldPagMoneda0000", "Moneda", "singleSelect", ch("MXN", "USD")],
+    ["fldPagCobro00000", "Fecha de cobro", "date"],
+    ["fldPagPagado0000", "Pagado", "checkbox"],
+    ["fldPagFechaPag00", "Fecha de pago", "date"],
+    ["fldPagCliente000", "Cliente", "multipleRecordLinks", link(T.clientes, "fldCliPagos00000")],
+    ["fldPagNotas00000", "Notas", "multilineText"],
+  ]],
+  [T.citas]: ["Citas", [
+    ["fldCitTitulo0000", "Título", "singleLineText"],
+    ["fldCitFecha00000", "Fecha", "dateTime", { timeZone: "America/Mexico_City" }],
+    ["fldCitCliente000", "Cliente", "multipleRecordLinks", link(T.clientes, "fldCliCitas00000")],
+    ["fldCitCon0000000", "Con", "multipleRecordLinks", link(T.equipo, "fldEquCitas00000")],
+    ["fldCitLugar00000", "Lugar", "singleLineText"],
+    ["fldCitNotas00000", "Notas", "multilineText"],
   ]],
 };
 
@@ -150,14 +190,18 @@ function crear(tid, fields, hace = 0) {
   return r;
 }
 
-const ana = crear(T.equipo, { Nombre: "Ana Torres", Rol: "Administrador", Email: "admin@dreamcatcher.test", Activo: true, Teléfono: "+52 55 1234 5678" });
-const luis = crear(T.equipo, { Nombre: "Luis Méndez", Rol: "Equipo", Email: "equipo@dreamcatcher.test", Activo: true });
-const sofi = crear(T.equipo, { Nombre: "Sofía Ruiz", Rol: "Equipo", Email: "sofia@dreamcatcher.test", Activo: true });
+// Contraseña de prueba: demo1234. Sofía tiene una invitación pendiente (código DCF-TEST-2345).
+const clave = cifrar("demo1234");
+const ana = crear(T.equipo, { Nombre: "Ana Torres", Rol: "Administrador", Email: "admin@dreamcatcher.test", Activo: true, Teléfono: "+52 55 1234 5678", "Estado invitación": "Usada", "Clave (cifrada)": clave });
+const luis = crear(T.equipo, { Nombre: "Luis Méndez", Rol: "Equipo", Email: "equipo@dreamcatcher.test", Activo: true, "Estado invitación": "Usada", "Clave (cifrada)": clave });
+const sofi = crear(T.equipo, { Nombre: "Sofía Ruiz", Rol: "Equipo", Email: "sofia@dreamcatcher.test", Activo: true, "Estado invitación": "Pendiente", "Código de invitación": "DCF-TEST-2345" });
 crear(T.equipo, { Nombre: "Pedro Gil", Rol: "Equipo", Email: "pedro@dreamcatcher.test", Activo: false });
+const beto = crear(T.equipo, { Nombre: "Beto Salas", Rol: "Administrador", Email: "socio@dreamcatcher.test", Activo: true, "Estado invitación": "Usada", "Clave (cifrada)": clave });
 
 const c1 = crear(T.clientes, { "Nombre del Cliente": "Mariana & Diego", "Fecha del Evento": dia(12), "Tipo de Servicio": "Boda", Venue: "Hacienda San Gabriel", Precio: 48000, "Estado del Cliente": "Confirmado", "Team Members": [ana.id, luis.id], Notificado: true, Prioridad: "Alta", "Solicitudes Especiales": "Drone en la ceremonia.\nVideo corto para redes." });
 const c2 = crear(T.clientes, { "Nombre del Cliente": "Lucía — XV años", "Fecha del Evento": dia(30), "Tipo de Servicio": "Cumpleaños", Venue: "Salón Jardín Real", Precio: 22000, "Estado del Cliente": "Pendiente de Pago", "Team Members": [sofi.id], Notificado: true });
 const c3 = crear(T.clientes, { "Nombre del Cliente": "Congreso TecnoMX", "Fecha del Evento": dia(-20), "Tipo de Servicio": "Conferencia", Venue: "Expo Guadalajara", Precio: 65000, "Estado del Cliente": "En Proceso", "Team Members": [ana.id, sofi.id, luis.id], Notificado: true });
+const c5 = crear(T.clientes, { "Nombre del Cliente": "Graduación ITAM", "Fecha del Evento": dia(30), "Tipo de Servicio": "Graduación", Venue: "Auditorio ITAM", Precio: 3000, Moneda: "USD", "Estado del Cliente": "Confirmado", Notificado: true });
 const c4 = crear(T.clientes, { "Nombre del Cliente": "Valeria & Andrés", "Fecha del Evento": dia(-75), "Tipo de Servicio": "Boda", Venue: "Casa Lamm", Precio: 52000, "Estado del Cliente": "Finalizado", "Team Members": [ana.id], Notificado: true });
 
 crear(T.tareas, { "Nombre de la Tarea": "Llamada de planeación con los novios", "Cliente Asociado": [c1.id], "Fecha Límite": dia(1), "Estado de Tarea": "Por Hacer", Prioridad: "Alta", Responsables: [ana.id] });
@@ -167,6 +211,7 @@ crear(T.tareas, { "Nombre de la Tarea": "Enviar contrato", "Cliente Asociado": [
 crear(T.tareas, { "Nombre de la Tarea": "Revisar música con licencia", "Estado de Tarea": "Por Hacer", Responsables: [luis.id, sofi.id] });
 
 crear(T.entrega, { Cliente: [c3.id], "Fecha de Entrega": dia(2), "Status Entrega": ["Revisando Cambios"], "Cambios Deseados": "Quitar el logo del patrocinador en el minuto 2:10 y subir el volumen de la keynote.", "Responsable Entrega": [sofi.id], "Link de Entrega": "https://vimeo.com/ejemplo" });
+crear(T.entrega, { Cliente: [c1.id], "Fecha de Entrega": dia(75), "Status Entrega": ["En revisión"], "Responsable Entrega": [luis.id], "Link de Entrega": "https://vimeo.com/ejemplo2" });
 crear(T.entrega, { Cliente: [c4.id], "Fecha de Entrega": dia(-40), "Status Entrega": ["Entregado"], "Responsable Entrega": [ana.id] });
 
 crear(T.leads, { "Nombre del Cliente": "Fernanda & Iván", "Fecha del Evento": dia(200), "Servicio Requerido": "Boda", "Estado Lead": "En Negociación", "1er Contacto": [ana.id], "2do Contacto": [luis.id] }, 15);
@@ -178,6 +223,22 @@ crear(T.conta, { Cliente: [c4.id], DEPOSITO: 52000, "Fecha Depósito": dia(-100)
 
 crear(T.gastos, { GASTOS: "Gasolina viaje a Guadalajara", Fecha: dia(-21), Cantidad: 1450, Categoría: "Transporte", "Forma de Pago": "Tarjeta", Cliente: [c3.id], "Persona que hizo el pago": [luis.id] });
 crear(T.gastos, { GASTOS: "Adobe Creative Cloud", Fecha: dia(-5), Cantidad: 1199, Categoría: "Software y suscripciones", "Forma de Pago": "Tarjeta", "Persona que hizo el pago": [ana.id] });
+
+crear(T.leads, { "Nombre del Cliente": "Carla & Tomás", "Fecha del Evento": dia(150), "Servicio Requerido": "Boda", "Estado Lead": "Nuevo" }, 3);
+
+crear(T.gastos, { GASTOS: "Lente Sony 24-70 GM", Fecha: dia(-2), Cantidad: 38500, Categoría: "Equipo y material", "Forma de Pago": "Tarjeta", "Persona que hizo el pago": [ana.id], Aprobación: "Pendiente" });
+crear(T.gastos, { GASTOS: "Renta de drone", Fecha: dia(-1), Cantidad: 6200, Categoría: "Equipo y material", "Forma de Pago": "Transferencia", Cliente: [c1.id], "Persona que hizo el pago": [beto.id], Aprobación: "Pendiente" });
+
+crear(T.pagos, { Concepto: "Depósito boda", Tipo: "Depósito", Monto: 15000, Moneda: "MXN", "Fecha de cobro": dia(-30), Pagado: true, "Fecha de pago": dia(-29), Cliente: [c1.id] });
+crear(T.pagos, { Concepto: "Balance boda", Tipo: "Balance", Monto: 33000, Moneda: "MXN", "Fecha de cobro": dia(5), Cliente: [c1.id] });
+crear(T.pagos, { Concepto: "Depósito XV", Tipo: "Depósito", Monto: 5000, Moneda: "MXN", "Fecha de cobro": dia(-12), Cliente: [c2.id] });
+crear(T.pagos, { Concepto: "Balance XV", Tipo: "Balance", Monto: 17000, Moneda: "MXN", "Fecha de cobro": dia(25), Cliente: [c2.id] });
+crear(T.pagos, { Concepto: "Depósito graduación", Tipo: "Depósito", Monto: 1000, Moneda: "USD", "Fecha de cobro": dia(-3), Cliente: [c5.id] });
+crear(T.pagos, { Concepto: "Balance graduación", Tipo: "Balance", Monto: 2000, Moneda: "USD", "Fecha de cobro": dia(28), Cliente: [c5.id] });
+
+const cita = new Date(Date.now() + 3 * 86400000);
+cita.setUTCHours(17, 30, 0, 0);
+crear(T.citas, { Título: "Prueba de locación", Fecha: cita.toISOString(), Cliente: [c1.id], Con: [ana.id, luis.id], Lugar: "Hacienda San Gabriel" });
 
 const telegram = [];
 

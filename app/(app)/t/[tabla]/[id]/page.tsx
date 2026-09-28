@@ -10,6 +10,9 @@ import SubirArchivo from "@/components/SubirArchivo";
 import BotonBorrar from "@/components/BotonBorrar";
 import BotonHecha from "@/components/BotonHecha";
 import { AccionLead, Pasos } from "@/components/vistas/Leads";
+import PanelAcceso from "@/components/PanelAcceso";
+import BotonAccion from "@/components/BotonAccion";
+import { DECISIONES, EQUIPO, GALERIAS, TABLAS } from "@/config/galerias";
 
 type Props = { params: Promise<{ tabla: string; id: string }> };
 
@@ -49,9 +52,12 @@ export default async function Ficha({ params }: Props) {
           <Link href={`${base}/${r.id}/editar`} className="btn btn-primario">
             Editar
           </Link>
+          {esAdmin(ctx.u) && <AccionesDecision r={r} tabla={ctx.t.id} yo={ctx.u.id} />}
           {esAdmin(ctx.u) && <BotonBorrar tabla={ctx.t.id} id={r.id} />}
         </div>
       </header>
+
+      {ctx.t.id === EQUIPO.tabla && esAdmin(ctx.u) && <PanelAcceso r={r} esYo={r.id === ctx.u.id} />}
 
       {ctx.g.vista === "leads" && (
         <section className="tarjeta bloque">
@@ -140,4 +146,28 @@ async function Relacionados({ ctx, r, campo, titulo }: { ctx: Contexto; r: AirRe
       )}
     </section>
   );
+}
+
+/** Botones de decisión en la ficha (los mismos que en el panel de inicio). */
+function AccionesDecision({ r, tabla, yo }: { r: AirRecord; tabla: string; yo: string }) {
+  const g = GALERIAS[tabla] ?? {};
+  if (tabla === TABLAS.pagos) {
+    return r.fields[String(g.pagado)] === true ? null : <BotonAccion accion="marcarPagado" id={r.id}>Marcar pagado</BotonAccion>;
+  }
+  if (tabla === TABLAS.entrega) {
+    const st = r.fields[String(g.status)];
+    const lista = (Array.isArray(st) ? st : [st]).map(texto);
+    return lista.includes(DECISIONES.entregaEnRevision) ? <BotonAccion accion="aprobarEntrega" id={r.id}>Dar visto bueno</BotonAccion> : null;
+  }
+  if (tabla === TABLAS.gastos) {
+    if (texto(r.fields[String(g.aprobacion)]) !== DECISIONES.aprobacionPendiente) return null;
+    if (((r.fields[String(g.pagador)] as string[] | undefined) ?? []).includes(yo)) return <span className="nota-chica">Lo aprueba otro socio</span>;
+    return (
+      <>
+        <BotonAccion accion="aprobarGasto" id={r.id}>Aprobar</BotonAccion>
+        <BotonAccion accion="rechazarGasto" id={r.id} tipo="secundario" confirmar="¿Rechazar este gasto?">Rechazar</BotonAccion>
+      </>
+    );
+  }
+  return null;
 }

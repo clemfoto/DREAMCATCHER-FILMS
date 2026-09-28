@@ -17,7 +17,7 @@ import { campo, campoVisible, esAdmin, esSoloLectura, puedeVerTabla, rutaTabla, 
 import { localAIso } from "@/lib/formato";
 import { moverEntregas, procesarClientes } from "@/lib/automatizaciones";
 import { telegramConfigurado } from "@/lib/telegram";
-import { GALERIAS, TABLAS } from "@/config/galerias";
+import { DECISIONES, GALERIAS, TABLAS } from "@/config/galerias";
 
 /** Tras guardar un cliente, lanza sus automatizaciones sin hacer esperar al usuario. */
 async function automatizarCliente(clienteId: string, fechaAntes: unknown, fechaDespues: unknown) {
@@ -99,6 +99,19 @@ export async function guardarRegistro(
     }
   } catch (e) {
     return { error: (e as Error).message };
+  }
+
+  // Gastos por encima del límite: quedan pendientes hasta que otro socio los apruebe
+  // (al crearlos o si cambia el monto). La decisión solo se toma con los botones.
+  if (t.id === TABLAS.gastos) {
+    const g = GALERIAS[TABLAS.gastos];
+    const monto = fields[String(g.monto)];
+    const aprob = String(g.aprobacion);
+    const antes = recordId ? (await getRegistro(t.id, recordId))?.fields[String(g.monto)] : undefined;
+    if (campo(t, aprob) && typeof monto === "number" && monto > DECISIONES.limiteGasto && monto !== antes) {
+      fields[aprob] = DECISIONES.aprobacionPendiente;
+      if (campo(t, String(g.aprobadoPor))) fields[String(g.aprobadoPor)] = [];
+    }
   }
 
   let id = recordId;

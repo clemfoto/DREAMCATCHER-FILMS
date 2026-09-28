@@ -1,12 +1,11 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-/** Tokens firmados con AUTH_SECRET (sin base de datos): enlace mágico y sesión. */
+/** Tokens firmados con AUTH_SECRET (sin base de datos): sesión y enlace del calendario. */
 
 export const COOKIE_SESION = "dcf_sesion";
 export const DURACION_SESION_S = 60 * 60 * 24 * 30; // 30 días
-export const DURACION_ENLACE_S = 60 * 15; // 15 minutos
 
-type Payload = { uso: "enlace" | "sesion"; email: string; exp: number };
+type Payload = { uso: "sesion"; email: string; exp: number };
 
 function secreto(): string {
   const s = process.env.AUTH_SECRET;
@@ -36,4 +35,15 @@ export function verificarToken(token: string | undefined, uso: Payload["uso"]): 
   } catch {
     return null;
   }
+}
+
+/** Firma corta y sin caducidad para URLs que no pueden llevar cookie (suscripción al calendario). */
+export function firmaCorta(uso: string, dato: string): string {
+  return firma(`${uso}:${dato}`).slice(0, 24);
+}
+
+export function comprobarFirmaCorta(uso: string, dato: string, recibida: string): boolean {
+  const a = Buffer.from(firmaCorta(uso, dato));
+  const b = Buffer.from(recibida);
+  return a.length === b.length && timingSafeEqual(a, b);
 }

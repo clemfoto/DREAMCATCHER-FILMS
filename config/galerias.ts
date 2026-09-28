@@ -18,6 +18,8 @@ export const TABLAS = {
   gastos: "tbl5kqfH0Fh7OhSu9",
   equipo: "tblWfnNYeXrB95dQC",
   informes: "tblWMvMEJgzGdD0mn",
+  pagos: "tbl1ToFFfPTxgwafa",
+  citas: "tblcNynnivIT8nJjy",
 } as const;
 
 /** Tabla de personas: da acceso a la app y alimenta los avatares. */
@@ -28,16 +30,21 @@ export const EQUIPO = {
   rol: "Rol",
   activo: "Activo",
   rolAdmin: "Administrador" as Rol,
+  /** Acceso con contraseña: cada persona tiene su propio código de invitación. */
+  codigo: "Código de invitación",
+  estadoInvitacion: "Estado invitación",
+  clave: "Clave (cifrada)",
+  invitacion: { pendiente: "Pendiente", usada: "Usada", cancelada: "Cancelada" },
 };
 
 /** Tablas que el rol "Equipo" puede ver. El Administrador ve todo. */
-export const TABLAS_ROL_EQUIPO: string[] = [TABLAS.clientes, TABLAS.tareas, TABLAS.entrega, TABLAS.leads];
+export const TABLAS_ROL_EQUIPO: string[] = [TABLAS.clientes, TABLAS.tareas, TABLAS.entrega, TABLAS.leads, TABLAS.citas];
 
 /** Barra inferior del móvil (el resto de tablas va en "Más"). */
 export const NAV_PRINCIPAL: string[] = [TABLAS.clientes, TABLAS.tareas, TABLAS.entrega, TABLAS.leads];
 
 /** Orden de las tablas dentro de "Más"; las tablas nuevas se añaden al final. */
-export const NAV_MAS: string[] = [TABLAS.contabilidad, TABLAS.gastos, TABLAS.informes, TABLAS.equipo];
+export const NAV_MAS: string[] = [TABLAS.pagos, TABLAS.citas, TABLAS.gastos, TABLAS.contabilidad, TABLAS.informes, TABLAS.equipo];
 
 /** Campos de uso interno de las automatizaciones: existen en Airtable pero la app no los muestra. */
 export const CAMPOS_OCULTOS: string[] = [
@@ -46,13 +53,25 @@ export const CAMPOS_OCULTOS: string[] = [
   "Invitaciones Telegram",
   "Recordatorio enviado",
   "Recordatorios enviados",
+  "Código de invitación",
+  "Estado invitación",
+  "Clave (cifrada)",
 ];
+
+/** Campos que la app muestra pero no deja editar en el formulario (se cambian con botones). */
+export const CAMPOS_SOLO_BOTONES: string[] = ["Aprobación", "Aprobado por"];
 
 /** Segundos que se reutilizan las lecturas de Airtable antes de volver a pedirlas. */
 export const CACHE_SEGUNDOS = 30;
 
 /** Formato de números y dinero (el símbolo sale de cada campo de Airtable). */
 export const MONEDA = { locale: "es-MX" };
+
+/** Monedas de los pagos (campo "Moneda" de Pagos y Clientes). La primera es la de por defecto. */
+export const MONEDAS: Record<string, { simbolo: string }> = {
+  MXN: { simbolo: "$" },
+  USD: { simbolo: "US$" },
+};
 
 /** Zona horaria del negocio, para saber qué es "hoy" y "esta semana". */
 export const ZONA_HORARIA = "America/Mexico_City";
@@ -92,6 +111,15 @@ export const COLORES_OPCION: Record<string, [string, string]> = {
   "en negociación": NARANJA,
   ganado: VERDE,
   perdido: ROJO,
+  // Aprobaciones, pagos e invitaciones
+  aprobada: VERDE,
+  aprobado: VERDE,
+  rechazado: ROJO,
+  pendiente: NARANJA,
+  usada: VERDE,
+  cancelada: ROJO,
+  depósito: AZUL,
+  balance: MORADO,
   // Prioridad
   alta: ROJO,
   media: NARANJA,
@@ -104,7 +132,7 @@ export const COLORES_OPCION: Record<string, [string, string]> = {
 
 export type Galeria = {
   /** Diseño especial de la lista; si no hay, se usa el genérico. */
-  vista?: "clientes" | "tareas" | "entrega" | "leads" | "contabilidad" | "gastos" | "equipo";
+  vista?: "clientes" | "tareas" | "entrega" | "leads" | "contabilidad" | "gastos" | "equipo" | "pagos" | "citas";
   /** Campo de selección que se ofrece como filtro en chips. */
   filtro?: string;
   /** Orden de la lista. */
@@ -129,10 +157,13 @@ export const GALERIAS: Record<string, Galeria> = {
     team: "Team Members",
     confirmados: "Confirmados",
     precio: "Precio",
+    moneda: "Moneda",
     relacionados: [
       { campo: "Tareas", titulo: "Tareas" },
       { campo: "Entrega", titulo: "Entregas" },
-      { campo: "Contabilidad", titulo: "Pagos" },
+      { campo: "Pagos", titulo: "Pagos" },
+      { campo: "Citas", titulo: "Citas" },
+      { campo: "Contabilidad", titulo: "Contabilidad" },
       { campo: "Gastos", titulo: "Gastos" },
       { campo: "Leads", titulo: "Leads" },
     ],
@@ -200,6 +231,8 @@ export const GALERIAS: Record<string, Galeria> = {
     pagador: "Persona que hizo el pago",
     monto: "Cantidad",
     comprobante: "Comprobante",
+    aprobacion: "Aprobación",
+    aprobadoPor: "Aprobado por",
   },
   [TABLAS.equipo]: {
     vista: "equipo",
@@ -209,10 +242,52 @@ export const GALERIAS: Record<string, Galeria> = {
     telefono: "Teléfono",
     activo: "Activo",
   },
+  [TABLAS.pagos]: {
+    vista: "pagos",
+    filtro: "Tipo",
+    orden: { campo: "Fecha de cobro", dir: "asc" },
+    tipo: "Tipo",
+    monto: "Monto",
+    moneda: "Moneda",
+    fechaCobro: "Fecha de cobro",
+    pagado: "Pagado",
+    fechaPago: "Fecha de pago",
+    cliente: "Cliente",
+  },
+  [TABLAS.citas]: {
+    vista: "citas",
+    orden: { campo: "Fecha", dir: "asc" },
+    fecha: "Fecha",
+    cliente: "Cliente",
+    con: "Con",
+    lugar: "Lugar",
+  },
   [TABLAS.informes]: {
     orden: { campo: "Mes", dir: "desc" },
-    tarjeta: ["Ingresos", "Gastos", "Resultado", "Pendiente de cobro"],
+    tarjeta: ["Ingresos", "Ingresos USD", "Gastos", "Resultado", "Pendiente de cobro", "Pendiente USD"],
   },
+};
+
+/* ------------------------------------------------------------------ */
+/* Panel de inicio: "Lo que necesita decisión"                          */
+/* ------------------------------------------------------------------ */
+
+export const DECISIONES = {
+  /** Estado de entrega que espera el visto bueno de un administrador… */
+  entregaEnRevision: "En revisión",
+  /** …y el que se pone al darlo. */
+  entregaAprobada: "Aprobada",
+  /** Gastos por encima de este monto los tiene que aprobar otro socio (no quien pagó). */
+  limiteGasto: 5000,
+  aprobacionPendiente: "Pendiente",
+  aprobado: "Aprobado",
+  rechazado: "Rechazado",
+  /** Horas sin primer contacto para que un lead salga en el panel. */
+  horasLeadSinContacto: 24,
+  /** Días de retraso para que un pago cuente como vencido. */
+  diasPagoVencido: 7,
+  /** Días hacia delante en que se buscan eventos sin team o en la misma fecha. */
+  diasEventos: 120,
 };
 
 /* ------------------------------------------------------------------ */
@@ -257,6 +332,8 @@ export const AUTOMATIZACIONES = {
     gastos: "Gastos",
     resultado: "Resultado",
     pendiente: "Pendiente de cobro",
+    ingresosUsd: "Ingresos USD",
+    pendienteUsd: "Pendiente USD",
     eventos: "Eventos del mes",
     detalle: "Detalle",
     generado: "Generado",

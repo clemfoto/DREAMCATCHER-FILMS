@@ -1,6 +1,6 @@
 import "server-only";
 import { getEsquema, getRegistros, type Field, type Table } from "@/lib/airtable";
-import { CAMPOS_OCULTOS, EQUIPO, NAV_MAS, NAV_PRINCIPAL, TABLAS_ROL_EQUIPO } from "@/config/galerias";
+import { CAMPOS_OCULTOS, CAMPOS_SOLO_BOTONES, EQUIPO, NAV_MAS, NAV_PRINCIPAL, TABLAS_ROL_EQUIPO } from "@/config/galerias";
 import type { Usuario } from "@/lib/auth";
 
 /** Tipos calculados por Airtable: se muestran pero no se editan. */
@@ -23,7 +23,7 @@ const SOLO_LECTURA = new Set([
   "multipleCollaborators",
 ]);
 
-export const esSoloLectura = (f: Field) => SOLO_LECTURA.has(f.type);
+export const esSoloLectura = (f: Field) => SOLO_LECTURA.has(f.type) || CAMPOS_SOLO_BOTONES.includes(f.name);
 export const esAntiguo = (f: Field) => /\(antiguo\)\s*$/i.test(f.name);
 
 export function slug(texto: string): string {
@@ -91,7 +91,10 @@ export async function navegacion(u: Usuario) {
     ...tablas.filter((t) => !conocidas.has(t.id)),
   ];
   const item = (t: Table) => ({ id: t.id, titulo: titulo(t), href: rutaTabla(t) });
-  return { principal: principal.map(item), mas: mas.map(item) };
+  return {
+    principal: [{ id: "inicio", titulo: "Inicio", href: "/inicio" }, ...principal.map(item)],
+    mas: [{ id: "calendario", titulo: "Calendario", href: "/calendario" }, ...mas.map(item)],
+  };
 }
 
 /** Texto que representa un registro (su campo principal). */

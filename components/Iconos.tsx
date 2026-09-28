@@ -8,6 +8,10 @@ const P: Record<string, string> = {
   [TABLAS.contabilidad]: "M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 1.5 2.6 4.5 3.3 4.5 1.7 4.5 3.5-2 3.2-4.5 3.2-4.5-1.4-4.5-3.2",
   [TABLAS.gastos]: "M6 3h12v18l-3-2-3 2-3-2-3 2V3ZM9 8h6M9 12h6",
   [TABLAS.equipo]: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0",
+  [TABLAS.pagos]: "M3 7h18v11H3zM3 11h18M7 15h3",
+  [TABLAS.citas]: "M12 8v4l2.5 2.5M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z",
+  inicio: "M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1v-9Z",
+  calendario: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
   mas: "M5 12h.01M12 12h.01M19 12h.01",
   tabla: "M4 5h16v14H4zM4 10h16M10 10v9",
 };

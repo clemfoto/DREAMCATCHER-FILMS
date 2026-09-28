@@ -13,10 +13,12 @@ import Leads from "@/components/vistas/Leads";
 import Contabilidad from "@/components/vistas/Contabilidad";
 import Gastos from "@/components/vistas/Gastos";
 import Equipo from "@/components/vistas/Equipo";
+import Pagos from "@/components/vistas/Pagos";
+import Citas from "@/components/vistas/Citas";
 
 type Props = { params: Promise<{ tabla: string }>; searchParams: Promise<{ q?: string; f?: string }> };
 
-const VISTAS = { clientes: Clientes, tareas: Tareas, entrega: Entrega, leads: Leads, contabilidad: Contabilidad, gastos: Gastos, equipo: Equipo };
+const VISTAS = { clientes: Clientes, tareas: Tareas, entrega: Entrega, leads: Leads, contabilidad: Contabilidad, gastos: Gastos, equipo: Equipo, pagos: Pagos, citas: Citas };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const ctx = await contextoTabla((await params).tabla);

@@ -9,10 +9,10 @@ import {
   type AirRecord,
 } from "@/lib/airtable";
 import { campoPrincipal, textoPrincipal } from "@/lib/esquema";
-import { diasHasta, fecha, hoyISO, moneda, texto } from "@/lib/formato";
+import { diasHasta, fecha, hoyISO, moneda, numero, texto } from "@/lib/formato";
 import { aNumero } from "@/lib/lista";
 import { enviar, enviarAdmins, h } from "@/lib/telegram";
-import { AUTOMATIZACIONES as A, EQUIPO, GALERIAS, TABLAS, ZONA_HORARIA } from "@/config/galerias";
+import { AUTOMATIZACIONES as A, DECISIONES, EQUIPO, GALERIAS, TABLAS, ZONA_HORARIA } from "@/config/galerias";
 
 /*
  * Automatizaciones. Se ejecutan desde /api/automatizaciones (tareas programadas de Netlify)
@@ -320,23 +320,62 @@ export async function informeMensual(mes = mesAnterior(), repetir = false): Prom
   const previo = existentes.find((r) => r.fields[I.mes] === mes);
   if (previo && !repetir) return [`El informe de ${mes} ya existe.`];
 
-  const [conta, gastos, clientes] = await Promise.all([
+  const [conta, gastos, clientes, pagos] = await Promise.all([
     getRegistrosSinCache(TABLAS.contabilidad),
     getRegistrosSinCache(TABLAS.gastos),
     getRegistrosSinCache(TABLAS.clientes),
+    getRegistrosSinCache(TABLAS.pagos).catch(() => []),
   ]);
   const enMes = (v: unknown) => typeof v === "string" && v.startsWith(mes);
+  const $ = (n: number) => dinero(n) || "$0";
+  const us = (n: number) => `US$${numero(n, 0)}`;
 
-  const depositos = conta.filter((r) => enMes(r.fields[C.contaFechaDeposito]));
-  const totalDepositos = depositos.reduce((s, r) => s + aNumero(r.fields[C.contaDeposito]), 0);
-  const balances = conta.filter((r) => enMes(r.fields[C.contaFechaBalance]));
-  const totalBalances = balances.reduce(
-    (s, r) => s + Math.max(0, aNumero(r.fields[C.contaTotal]) - aNumero(r.fields[C.contaDeposito])),
-    0,
+  // Ingresos: con la tabla Pagos (pagos marcados como pagados en el mes, en pesos y dólares);
+  // si todavía no se usa, con la tabla Contabilidad antigua (depósitos y balances por fecha).
+  const gPag = GALERIAS[TABLAS.pagos];
+  const usarPagos = pagos.length > 0;
+  const monedaPago = (r: AirRecord) => texto(r.fields[str(gPag.moneda)]) || "MXN";
+  let ingresos = 0;
+  let ingresosUsd = 0;
+  let pendiente = 0;
+  let pendienteUsd = 0;
+  let lineasIngresos: string[];
+  if (usarPagos) {
+    const cobrados = pagos.filter((r) => r.fields[str(gPag.pagado)] === true && enMes(r.fields[str(gPag.fechaPago)]));
+    for (const r of cobrados) {
+      if (monedaPago(r) === "USD") ingresosUsd += aNumero(r.fields[str(gPag.monto)]);
+      else ingresos += aNumero(r.fields[str(gPag.monto)]);
+    }
+    for (const r of pagos.filter((x) => x.fields[str(gPag.pagado)] !== true)) {
+      if (monedaPago(r) === "USD") pendienteUsd += aNumero(r.fields[str(gPag.monto)]);
+      else pendiente += aNumero(r.fields[str(gPag.monto)]);
+    }
+    const nombresCli = new Map(clientes.map((c) => [c.id, nombreCliente(c)]));
+    lineasIngresos = cobrados.map((r) => {
+      const cli = ((r.fields[str(gPag.cliente)] as string[] | undefined) ?? []).map((id) => nombresCli.get(id)).join(", ");
+      const m = aNumero(r.fields[str(gPag.monto)]);
+      return `  ${cli || texto(r.fields["Concepto"]) || "Pago"} · ${texto(r.fields[str(gPag.tipo)])}: ${monedaPago(r) === "USD" ? us(m) : $(m)}`;
+    });
+  } else {
+    const depositos = conta.filter((r) => enMes(r.fields[C.contaFechaDeposito]));
+    const totalDepositos = depositos.reduce((s, r) => s + aNumero(r.fields[C.contaDeposito]), 0);
+    const balances = conta.filter((r) => enMes(r.fields[C.contaFechaBalance]));
+    const totalBalances = balances.reduce(
+      (s, r) => s + Math.max(0, aNumero(r.fields[C.contaTotal]) - aNumero(r.fields[C.contaDeposito])),
+      0,
+    );
+    ingresos = totalDepositos + totalBalances;
+    pendiente = conta.reduce((s, r) => s + Math.max(0, aNumero(r.fields[C.contaPendiente])), 0);
+    lineasIngresos = [
+      `  Depósitos cobrados (${depositos.length}): ${$(totalDepositos)}`,
+      `  Balances con fecha en el mes (${balances.length}): ${$(totalBalances)}`,
+    ];
+  }
+
+  // Los gastos rechazados no cuentan.
+  const gastosMes = gastos.filter(
+    (r) => enMes(r.fields[str(gGas.fecha)]) && texto(r.fields[str(gGas.aprobacion)]) !== DECISIONES.rechazado,
   );
-  const ingresos = totalDepositos + totalBalances;
-
-  const gastosMes = gastos.filter((r) => enMes(r.fields[str(gGas.fecha)]));
   const totalGastos = gastosMes.reduce((s, r) => s + aNumero(r.fields[str(gGas.monto)]), 0);
   const porCategoria = new Map<string, number>();
   for (const r of gastosMes) {
@@ -348,24 +387,21 @@ export async function informeMensual(mes = mesAnterior(), repetir = false): Prom
     (r) => enMes(r.fields[str(gCli.fecha)]) && !A.estadosClienteIgnorados.includes(texto(r.fields[str(gCli.estado)])),
   );
   const facturado = eventos.reduce((s, r) => s + aNumero(r.fields[str(gCli.precio)]), 0);
-  const pendiente = conta.reduce((s, r) => s + Math.max(0, aNumero(r.fields[C.contaPendiente])), 0);
   const resultado = ingresos - totalGastos;
-  const $ = (n: number) => dinero(n) || "$0";
 
   const detalle = [
-    `INGRESOS ${$(ingresos)}`,
-    `  Depósitos cobrados (${depositos.length}): ${$(totalDepositos)}`,
-    `  Balances con fecha en el mes (${balances.length}): ${$(totalBalances)}`,
+    `INGRESOS ${$(ingresos)}${ingresosUsd ? ` + ${us(ingresosUsd)}` : ""}`,
+    ...lineasIngresos,
     ``,
     `GASTOS ${$(totalGastos)} (${gastosMes.length} movimientos)`,
     ...[...porCategoria.entries()].sort((a, b) => b[1] - a[1]).map(([c, n]) => `  ${c}: ${$(n)}`),
     ``,
-    `RESULTADO ${$(resultado)}`,
+    `RESULTADO (pesos) ${$(resultado)}${ingresosUsd ? ` · más ${us(ingresosUsd)} en dólares` : ""}`,
     ``,
     `Eventos del mes: ${eventos.length} (facturación ${$(facturado)})`,
     ...eventos.map((r) => `  ${nombreCliente(r)} · ${fecha(r.fields[str(gCli.fecha)])}`),
     ``,
-    `Pendiente de cobro total a hoy: ${$(pendiente)}`,
+    `Pendiente de cobro total a hoy: ${$(pendiente)}${pendienteUsd ? ` + ${us(pendienteUsd)}` : ""}`,
   ].join("\n");
 
   const campos = {
@@ -374,6 +410,7 @@ export async function informeMensual(mes = mesAnterior(), repetir = false): Prom
     [I.gastos]: totalGastos,
     [I.resultado]: resultado,
     [I.pendiente]: pendiente,
+    ...(usarPagos ? { [I.ingresosUsd]: ingresosUsd, [I.pendienteUsd]: pendienteUsd } : {}),
     [I.eventos]: eventos.length,
     [I.detalle]: detalle,
     [I.generado]: hoyISO(),
