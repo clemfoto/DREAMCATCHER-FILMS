@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { headers } from "next/headers";
 import {
   actualizarRegistro,
+  getRegistros,
   borrarRegistro,
   crearRegistro,
   getRegistro,
@@ -17,7 +18,7 @@ import { campo, campoVisible, esAdmin, esSoloLectura, puedeVerTabla, rutaTabla, 
 import { localAIso } from "@/lib/formato";
 import { moverEntregas, procesarClientes } from "@/lib/automatizaciones";
 import { telegramConfigurado } from "@/lib/telegram";
-import { DECISIONES, GALERIAS, TABLAS } from "@/config/galerias";
+import { DECISIONES, EQUIPO, GALERIAS, TABLAS } from "@/config/galerias";
 
 /** Tras guardar un cliente, lanza sus automatizaciones sin hacer esperar al usuario. */
 async function automatizarCliente(clienteId: string, fechaAntes: unknown, fechaDespues: unknown) {
@@ -99,6 +100,15 @@ export async function guardarRegistro(
     }
   } catch (e) {
     return { error: (e as Error).message };
+  }
+
+  // En Equipo el email identifica a la persona al entrar: no puede repetirse.
+  if (t.id === EQUIPO.tabla && typeof fields[EQUIPO.email] === "string") {
+    const email = String(fields[EQUIPO.email]).trim().toLowerCase();
+    const otro = (await getRegistros(EQUIPO.tabla)).find(
+      (x) => x.id !== recordId && String(x.fields[EQUIPO.email] ?? "").trim().toLowerCase() === email,
+    );
+    if (otro) return { error: `Ese email ya lo tiene ${String(otro.fields[EQUIPO.nombre] ?? "otra persona")}. Cada persona necesita su propio email.` };
   }
 
   // Gastos por encima del límite: quedan pendientes hasta que otro socio los apruebe

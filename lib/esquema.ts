@@ -1,6 +1,6 @@
 import "server-only";
 import { getEsquema, getRegistros, type Field, type Table } from "@/lib/airtable";
-import { CAMPOS_OCULTOS, CAMPOS_SOLO_BOTONES, EQUIPO, GALERIAS, NAV_MAS, NAV_PRINCIPAL, TABLAS_ROL_EQUIPO } from "@/config/galerias";
+import { CAMPOS_OCULTOS, CAMPOS_SOLO_BOTONES, EQUIPO, GALERIAS, TABLAS, NAV_MAS, NAV_PRINCIPAL, TABLAS_ROL_EQUIPO } from "@/config/galerias";
 import type { Usuario } from "@/lib/auth";
 
 /** Tipos calculados por Airtable: se muestran pero no se editan. */
@@ -131,4 +131,27 @@ export async function nombresEnlazados(u: Usuario, t: Table): Promise<Record<str
   const out: Record<string, Map<string, string>> = {};
   await Promise.all([...destinos].map(async (id) => (out[id] = await nombresDe(id))));
   return out;
+}
+
+export type ResumenCliente = { nombre: string; fecha: string; venue: string; servicio: string };
+
+/**
+ * Datos básicos de cada cliente (nombre, fecha, venue y servicio) para quien no puede abrir Clientes:
+ * el rol Equipo los ve en sus tareas y en el calendario, sin precios ni otros detalles.
+ */
+export async function resumenClientes(): Promise<Map<string, ResumenCliente>> {
+  const g = GALERIAS[TABLAS.clientes];
+  const regs = await getRegistros(TABLAS.clientes);
+  const t = (v: unknown) => textoPrincipal(v);
+  return new Map(
+    regs.map((r) => [
+      r.id,
+      {
+        nombre: t(r.fields[String(g.nombre)]) || "Cliente",
+        fecha: typeof r.fields[String(g.fecha)] === "string" ? String(r.fields[String(g.fecha)]) : "",
+        venue: t(r.fields[String(g.venue)]),
+        servicio: t(r.fields[String(g.servicio)]),
+      },
+    ]),
+  );
 }

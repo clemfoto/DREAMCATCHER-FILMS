@@ -16,7 +16,7 @@ function secreto(): string {
 const firma = (datos: string) => createHmac("sha256", secreto()).update(datos).digest("base64url");
 
 export function firmarToken(uso: Payload["uso"], email: string, duracionS: number): string {
-  const payload: Payload = { uso, email: email.toLowerCase(), exp: Math.floor(Date.now() / 1000) + duracionS };
+  const payload: Payload = { uso, email: email.startsWith("rec") ? email : email.toLowerCase(), exp: Math.floor(Date.now() / 1000) + duracionS };
   const datos = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${datos}.${firma(datos)}`;
 }

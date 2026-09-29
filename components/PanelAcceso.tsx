@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import type { AirRecord } from "@/lib/airtable";
+import { getRegistros, type AirRecord } from "@/lib/airtable";
 import { EQUIPO } from "@/config/galerias";
 import { Chip } from "@/components/Valor";
 import BotonesAcceso from "@/components/BotonesAcceso";
@@ -14,6 +14,11 @@ export default async function PanelAcceso({ r, esYo }: { r: AirRecord; esYo: boo
   const tieneClave = Boolean(r.fields[EQUIPO.clave]);
   const email = String(r.fields[EQUIPO.email] ?? "").trim();
   const nombre = String(r.fields[EQUIPO.nombre] ?? "").split(" ")[0];
+  const mismoEmail = email
+    ? (await getRegistros(EQUIPO.tabla)).filter(
+        (x) => x.id !== r.id && String(x.fields[EQUIPO.email] ?? "").trim().toLowerCase() === email.toLowerCase(),
+      )
+    : [];
   const enlace = codigo ? `${proto}://${host}/registro?codigo=${encodeURIComponent(codigo)}` : "";
   const mensaje = codigo
     ? `Hola ${nombre}, este es tu acceso a la app de Dreamcatcher Films.\n\n1. Abre ${enlace}\n2. Email: ${email}\n3. Código: ${codigo}\n4. Crea tu contraseña.\n\nDespués instálala en tu teléfono (Compartir → "Añadir a pantalla de inicio").`
@@ -33,6 +38,12 @@ export default async function PanelAcceso({ r, esYo }: { r: AirRecord; esYo: boo
         {estado && <Chip nombre={estado} />}
       </div>
       <p className="muted">{resumen}</p>
+      {mismoEmail.length > 0 && (
+        <p className="error">
+          Ojo: {mismoEmail.map((x) => String(x.fields[EQUIPO.nombre] ?? "otra persona")).join(", ")} tiene el mismo email. Cada persona
+          necesita su propio email para entrar: cámbialo con «Editar».
+        </p>
+      )}
       {codigo && (
         <div className="codigo-invitacion">
           <span className="campo-label">Código personal</span>

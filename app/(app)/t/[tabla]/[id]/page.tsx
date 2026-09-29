@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { getRegistro, getRegistros, type AirRecord } from "@/lib/airtable";
 import { cfg, contextoTabla, type Contexto } from "@/lib/contexto";
 import { campoPrincipal, esAdmin, esSoloLectura, rutaTabla, textoPrincipal, titulo } from "@/lib/esquema";
-import { texto } from "@/lib/formato";
+import { fecha, texto } from "@/lib/formato";
 import { Valor } from "@/components/Valor";
 import SubirArchivo from "@/components/SubirArchivo";
 import BotonBorrar from "@/components/BotonBorrar";
@@ -58,6 +58,8 @@ export default async function Ficha({ params }: Props) {
       </header>
 
       {ctx.t.id === EQUIPO.tabla && esAdmin(ctx.u) && <PanelAcceso r={r} esYo={r.id === ctx.u.id} />}
+
+      {ctx.g.vista === "tareas" && <EventoDeTarea r={r} ctx={ctx} />}
 
       {ctx.g.vista === "leads" && (
         <section className="tarjeta bloque">
@@ -167,4 +169,43 @@ function AccionesDecision({ r, tabla, yo }: { r: AirRecord; tabla: string; yo: s
     );
   }
   return null;
+}
+
+/** Datos del evento de una tarea (nombre, fecha, venue y servicio), visibles también para el rol Equipo. */
+function EventoDeTarea({ r, ctx }: { r: AirRecord; ctx: Contexto }) {
+  const ids = (r.fields[String(ctx.g.cliente)] as string[] | undefined) ?? [];
+  const ruta = ctx.enlaces.rutas[TABLAS.clientes];
+  const eventos = ids.map((id) => ({ id, c: ctx.clientes?.get(id) })).filter((x) => x.c);
+  if (!eventos.length) return null;
+  return (
+    <section className="tarjeta bloque">
+      <h2 className="seccion-titulo">Evento</h2>
+      {eventos.map(({ id, c }) => (
+        <dl key={id} className="campos">
+          <div className="campo-ficha">
+            <dt>Cliente</dt>
+            <dd>{ruta ? <Link href={`${ruta}/${id}`}>{c!.nombre}</Link> : c!.nombre}</dd>
+          </div>
+          {c!.fecha && (
+            <div className="campo-ficha">
+              <dt>Fecha</dt>
+              <dd>{fecha(c!.fecha)}</dd>
+            </div>
+          )}
+          {c!.venue && (
+            <div className="campo-ficha">
+              <dt>Venue</dt>
+              <dd>{c!.venue}</dd>
+            </div>
+          )}
+          {c!.servicio && (
+            <div className="campo-ficha">
+              <dt>Servicio</dt>
+              <dd>{c!.servicio}</dd>
+            </div>
+          )}
+        </dl>
+      ))}
+    </section>
+  );
 }

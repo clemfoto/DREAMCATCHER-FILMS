@@ -13,7 +13,7 @@ App interna de gestión para una productora de video (bodas y eventos). La usan 
 - Next.js (App Router) + TypeScript, desplegado en Vercel.
 - PWA: manifest, service worker, iconos, `viewport-fit=cover` y safe areas para iPhone.
 - Airtable como único backend. **Nunca** llamar a Airtable desde el navegador: todas las llamadas pasan por rutas de servidor (Route Handlers / Server Actions), con el token en variables de entorno.
-- Autenticación: email + contraseña con **código de invitación personal** (Equipo → `Código de invitación`, `Estado invitación` Pendiente/Usada/Cancelada, `Clave (cifrada)` con scrypt). El administrador genera, reenvía o cancela el código desde la ficha de cada persona; cancelar cierra su sesión. Solo pueden entrar los emails de **Equipo** con `Activo` marcado. El rol sale de `Equipo.Rol`.
+- Autenticación: email + contraseña con **código de invitación personal** (Equipo → `Código de invitación`, `Estado invitación` Pendiente/Usada/Cancelada, `Clave (cifrada)` con scrypt). El administrador genera, reenvía o cancela el código desde la ficha de cada persona; cancelar cierra su sesión. Solo pueden entrar los emails de **Equipo** con `Activo` marcado; el email no puede repetirse y la sesión guarda el ID de la fila. El rol sale de `Equipo.Rol`.
 - Estilos: CSS propio o Tailwind, respetando los tokens de diseño de abajo.
 
 ### Variables de entorno
@@ -53,7 +53,7 @@ Reglas:
 ## Permisos
 
 - **Administrador:** acceso a todo, incluidas Contabilidad, Gastos y Equipo.
-- **Equipo:** solo Tareas y Calendario (en el calendario ve eventos, entregas y tareas, sin poder abrir Clientes ni Entrega). Sin panel de inicio, Clientes, Entrega, Leads, Contabilidad, Gastos ni Equipo.
+- **Equipo:** solo Tareas y Calendario (en el calendario ve eventos, entregas y tareas, sin poder abrir Clientes ni Entrega). En sus tareas ve nombre, fecha, venue y servicio del cliente, nunca precios ni otros datos (`resumenClientes`). Sin panel de inicio, Clientes, Entrega, Leads, Contabilidad, Gastos ni Equipo.
 - El rol se elige en la ficha de la persona (Equipo → "Rol y acceso a la app").
 - Los permisos se comprueban en el servidor, no solo ocultando botones.
 

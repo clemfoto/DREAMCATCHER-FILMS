@@ -3,7 +3,7 @@ import { forbidden, notFound } from "next/navigation";
 import { getEsquema, type Field, type Table } from "@/lib/airtable";
 import { requireUsuario, type Usuario } from "@/lib/auth";
 import { EQUIPO, GALERIAS, TABLAS, type Galeria } from "@/config/galerias";
-import { camposVisibles, nombresDe, nombresEnlazados, puedeVerTabla, rutaTabla, tablaPorSlug } from "@/lib/esquema";
+import { camposVisibles, nombresDe, nombresEnlazados, puedeVerTabla, resumenClientes, rutaTabla, tablaPorSlug, type ResumenCliente } from "@/lib/esquema";
 
 /** Lo que necesitan los componentes para pintar enlaces entre tablas. */
 export type Enlaces = {
@@ -19,6 +19,8 @@ export type Contexto = {
   campos: Field[];
   enlaces: Enlaces;
   esquema: Table[];
+  /** Nombre, fecha, venue y servicio de los clientes (para Tareas, también para el rol Equipo). */
+  clientes?: Map<string, ResumenCliente>;
 };
 
 /** Carga tabla + usuario comprobando permisos en el servidor. */
@@ -37,6 +39,7 @@ export async function contextoTabla(slugTabla: string): Promise<Contexto> {
     campos: camposVisibles(u, t),
     enlaces: { nombres: await nombresEnlazados(u, t), rutas },
     esquema,
+    clientes: t.id === TABLAS.tareas ? await resumenClientes() : undefined,
   };
 }
 

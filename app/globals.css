@@ -1783,3 +1783,7 @@ textarea.input {
 .rol-opcion:disabled:not(.activo) {
   opacity: 0.5;
 }
+
+.tarea-evento {
+  font-size: 13px;
+}
