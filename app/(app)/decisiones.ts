@@ -3,7 +3,7 @@ import { forbidden, notFound } from "next/navigation";
 import { updateTag } from "next/cache";
 import { actualizarRegistro, getRegistro, tagTabla } from "@/lib/airtable";
 import { requireAdmin } from "@/lib/auth";
-import { hoyISO, texto } from "@/lib/formato";
+import { texto } from "@/lib/formato";
 import { DECISIONES, GALERIAS, TABLAS } from "@/config/galerias";
 
 /** Acciones de un toque del panel "Lo que necesita decisión" (solo administradores). */
@@ -40,13 +40,3 @@ export async function decidirGasto(id: string, aprobado: boolean): Promise<void>
   refrescar(TABLAS.gastos, TABLAS.equipo);
 }
 
-/** Marca un pago como cobrado (con la fecha de hoy) o lo deja pendiente otra vez. */
-export async function marcarPagado(id: string, pagado = true): Promise<void> {
-  await requireAdmin();
-  const g = GALERIAS[TABLAS.pagos];
-  await actualizarRegistro(TABLAS.pagos, id, {
-    [String(g.pagado)]: pagado,
-    [String(g.fechaPago)]: pagado ? hoyISO() : null,
-  });
-  refrescar(TABLAS.pagos);
-}

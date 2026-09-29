@@ -39,7 +39,7 @@ async function manejar(req: NextRequest) {
         log.push(...(await recordatoriosEntrega()), ...(await recordatoriosLeads(base)));
         break;
       case "mensual":
-        log.push(...(await informeMensual(req.nextUrl.searchParams.get("mes") ?? undefined, !porCron)));
+        log.push(...(await informeMensual(req.nextUrl.searchParams.get("mes") ?? undefined)));
         break;
       case "webhook":
         await configurarWebhook(`${base}/api/telegram`);

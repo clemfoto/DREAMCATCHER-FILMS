@@ -24,9 +24,6 @@ const T = {
   conta: "tbl4d283L3x8TVLzy",
   gastos: "tbl5kqfH0Fh7OhSu9",
   equipo: "tblWfnNYeXrB95dQC",
-  informes: "tblWMvMEJgzGdD0mn",
-  pagos: "tbl1ToFFfPTxgwafa",
-  citas: "tblcNynnivIT8nJjy",
 };
 
 // [id, nombre, tipo, opciones]
@@ -53,9 +50,6 @@ const esquema = {
     ["fldCliConfirm000", "Confirmados", "multipleRecordLinks", link(T.equipo, "fldEquConfirm000")],
     ["fldCliInvitad000", "Invitados Telegram", "multipleRecordLinks", link(T.equipo, "fldEquInvitad000")],
     ["fldCliNotific000", "Notificado", "checkbox"],
-    ["fldCliMoneda0000", "Moneda", "singleSelect", ch("MXN", "USD")],
-    ["fldCliPagos00000", "Pagos", "multipleRecordLinks", link(T.pagos, "fldPagCliente000")],
-    ["fldCliCitas00000", "Citas", "multipleRecordLinks", link(T.citas, "fldCitCliente000")],
   ]],
   [T.tareas]: ["Tareas", [
     ["fldTarNombre0000", "Nombre de la Tarea", "singleLineText"],
@@ -136,38 +130,6 @@ const esquema = {
     ["fldEquEstInv0000", "Estado invitación", "singleSelect", ch("Pendiente", "Usada", "Cancelada")],
     ["fldEquClave00000", "Clave (cifrada)", "singleLineText"],
     ["fldEquGasAprob00", "Gastos aprobados", "multipleRecordLinks", link(T.gastos, "fldGasAprobPor00")],
-    ["fldEquCitas00000", "Citas", "multipleRecordLinks", link(T.citas, "fldCitCon0000000")],
-  ]],
-  [T.informes]: ["Informes", [
-    ["fldInfMes0000000", "Mes", "singleLineText"],
-    ["fldInfIngresos00", "Ingresos", "currency", cur],
-    ["fldInfGastos0000", "Gastos", "currency", cur],
-    ["fldInfResultado0", "Resultado", "currency", cur],
-    ["fldInfPendiente0", "Pendiente de cobro", "currency", cur],
-    ["fldInfEventos000", "Eventos del mes", "number", { precision: 0 }],
-    ["fldInfDetalle000", "Detalle", "multilineText"],
-    ["fldInfGenerado00", "Generado", "date"],
-    ["fldInfIngUsd0000", "Ingresos USD", "currency", { symbol: "US$", precision: 0 }],
-    ["fldInfPendUsd000", "Pendiente USD", "currency", { symbol: "US$", precision: 0 }],
-  ]],
-  [T.pagos]: ["Pagos", [
-    ["fldPagConcepto00", "Concepto", "singleLineText"],
-    ["fldPagTipo000000", "Tipo", "singleSelect", ch("Depósito", "Balance", "Otro")],
-    ["fldPagMonto00000", "Monto", "number", { precision: 2 }],
-    ["fldPagMoneda0000", "Moneda", "singleSelect", ch("MXN", "USD")],
-    ["fldPagCobro00000", "Fecha de cobro", "date"],
-    ["fldPagPagado0000", "Pagado", "checkbox"],
-    ["fldPagFechaPag00", "Fecha de pago", "date"],
-    ["fldPagCliente000", "Cliente", "multipleRecordLinks", link(T.clientes, "fldCliPagos00000")],
-    ["fldPagNotas00000", "Notas", "multilineText"],
-  ]],
-  [T.citas]: ["Citas", [
-    ["fldCitTitulo0000", "Título", "singleLineText"],
-    ["fldCitFecha00000", "Fecha", "dateTime", { timeZone: "America/Mexico_City" }],
-    ["fldCitCliente000", "Cliente", "multipleRecordLinks", link(T.clientes, "fldCliCitas00000")],
-    ["fldCitCon0000000", "Con", "multipleRecordLinks", link(T.equipo, "fldEquCitas00000")],
-    ["fldCitLugar00000", "Lugar", "singleLineText"],
-    ["fldCitNotas00000", "Notas", "multilineText"],
   ]],
 };
 
@@ -201,7 +163,7 @@ const beto = crear(T.equipo, { Nombre: "Beto Salas", Rol: "Administrador", Email
 const c1 = crear(T.clientes, { "Nombre del Cliente": "Mariana & Diego", "Fecha del Evento": dia(12), "Tipo de Servicio": "Boda", Venue: "Hacienda San Gabriel", Precio: 48000, "Estado del Cliente": "Confirmado", "Team Members": [ana.id, luis.id], Notificado: true, Prioridad: "Alta", "Solicitudes Especiales": "Drone en la ceremonia.\nVideo corto para redes." });
 const c2 = crear(T.clientes, { "Nombre del Cliente": "Lucía — XV años", "Fecha del Evento": dia(30), "Tipo de Servicio": "Cumpleaños", Venue: "Salón Jardín Real", Precio: 22000, "Estado del Cliente": "Pendiente de Pago", "Team Members": [sofi.id], Notificado: true });
 const c3 = crear(T.clientes, { "Nombre del Cliente": "Congreso TecnoMX", "Fecha del Evento": dia(-20), "Tipo de Servicio": "Conferencia", Venue: "Expo Guadalajara", Precio: 65000, "Estado del Cliente": "En Proceso", "Team Members": [ana.id, sofi.id, luis.id], Notificado: true });
-const c5 = crear(T.clientes, { "Nombre del Cliente": "Graduación ITAM", "Fecha del Evento": dia(30), "Tipo de Servicio": "Graduación", Venue: "Auditorio ITAM", Precio: 3000, Moneda: "USD", "Estado del Cliente": "Confirmado", Notificado: true });
+const c5 = crear(T.clientes, { "Nombre del Cliente": "Graduación ITAM", "Fecha del Evento": dia(30), "Tipo de Servicio": "Graduación", Venue: "Auditorio ITAM", Precio: 3000, "Estado del Cliente": "Confirmado", Notificado: true });
 const c4 = crear(T.clientes, { "Nombre del Cliente": "Valeria & Andrés", "Fecha del Evento": dia(-75), "Tipo de Servicio": "Boda", Venue: "Casa Lamm", Precio: 52000, "Estado del Cliente": "Finalizado", "Team Members": [ana.id], Notificado: true });
 
 crear(T.tareas, { "Nombre de la Tarea": "Llamada de planeación con los novios", "Cliente Asociado": [c1.id], "Fecha Límite": dia(1), "Estado de Tarea": "Por Hacer", Prioridad: "Alta", Responsables: [ana.id] });
@@ -218,7 +180,7 @@ crear(T.leads, { "Nombre del Cliente": "Fernanda & Iván", "Fecha del Evento": d
 crear(T.leads, { "Nombre del Cliente": "Startup Nube", "Fecha del Evento": dia(60), "Servicio Requerido": "Promocional", "Estado Lead": "Nuevo", "1er Contacto": [sofi.id], "Notas de Lead": "Quieren un video de 60 s para lanzamiento." }, 8);
 
 crear(T.conta, { Cliente: [c1.id], DEPOSITO: 15000, "Fecha Depósito": dia(-30), "Fecha Balance": dia(5) });
-crear(T.conta, { Cliente: [c2.id], DEPOSITO: 5000, "Fecha Depósito": dia(-10), "Fecha Balance": dia(25) });
+crear(T.conta, { Cliente: [c2.id], DEPOSITO: 5000, "Fecha Depósito": dia(-10), "Fecha Balance": dia(-12) });
 crear(T.conta, { Cliente: [c4.id], DEPOSITO: 52000, "Fecha Depósito": dia(-100), "Fecha Balance": dia(-70) });
 
 crear(T.gastos, { GASTOS: "Gasolina viaje a Guadalajara", Fecha: dia(-21), Cantidad: 1450, Categoría: "Transporte", "Forma de Pago": "Tarjeta", Cliente: [c3.id], "Persona que hizo el pago": [luis.id] });
@@ -228,17 +190,6 @@ crear(T.leads, { "Nombre del Cliente": "Carla & Tomás", "Fecha del Evento": dia
 
 crear(T.gastos, { GASTOS: "Lente Sony 24-70 GM", Fecha: dia(-2), Cantidad: 38500, Categoría: "Equipo y material", "Forma de Pago": "Tarjeta", "Persona que hizo el pago": [ana.id], Aprobación: "Pendiente" });
 crear(T.gastos, { GASTOS: "Renta de drone", Fecha: dia(-1), Cantidad: 6200, Categoría: "Equipo y material", "Forma de Pago": "Transferencia", Cliente: [c1.id], "Persona que hizo el pago": [beto.id], Aprobación: "Pendiente" });
-
-crear(T.pagos, { Concepto: "Depósito boda", Tipo: "Depósito", Monto: 15000, Moneda: "MXN", "Fecha de cobro": dia(-30), Pagado: true, "Fecha de pago": dia(-29), Cliente: [c1.id] });
-crear(T.pagos, { Concepto: "Balance boda", Tipo: "Balance", Monto: 33000, Moneda: "MXN", "Fecha de cobro": dia(5), Cliente: [c1.id] });
-crear(T.pagos, { Concepto: "Depósito XV", Tipo: "Depósito", Monto: 5000, Moneda: "MXN", "Fecha de cobro": dia(-12), Cliente: [c2.id] });
-crear(T.pagos, { Concepto: "Balance XV", Tipo: "Balance", Monto: 17000, Moneda: "MXN", "Fecha de cobro": dia(25), Cliente: [c2.id] });
-crear(T.pagos, { Concepto: "Depósito graduación", Tipo: "Depósito", Monto: 1000, Moneda: "USD", "Fecha de cobro": dia(-3), Cliente: [c5.id] });
-crear(T.pagos, { Concepto: "Balance graduación", Tipo: "Balance", Monto: 2000, Moneda: "USD", "Fecha de cobro": dia(28), Cliente: [c5.id] });
-
-const cita = new Date(Date.now() + 3 * 86400000);
-cita.setUTCHours(17, 30, 0, 0);
-crear(T.citas, { Título: "Prueba de locación", Fecha: cita.toISOString(), Cliente: [c1.id], Con: [ana.id, luis.id], Lugar: "Hacienda San Gabriel" });
 
 const telegram = [];
 

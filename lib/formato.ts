@@ -1,4 +1,4 @@
-import { COLORES_OPCION, COLOR_POR_DEFECTO, MONEDA, MONEDAS, ZONA_HORARIA } from "@/config/galerias";
+import { COLORES_OPCION, COLOR_POR_DEFECTO, MONEDA, ZONA_HORARIA } from "@/config/galerias";
 import type { Field } from "@/lib/airtable";
 
 /** "2026-10-12" → Date a mediodía local (evita saltos de día por zona horaria). */
@@ -113,12 +113,11 @@ export function localAIso(local: string): string | null {
   return new Date(comoUTC.getTime() - desfaseMin(comoUTC) * 60000).toISOString();
 }
 
-/** Dinero en la moneda indicada ("MXN" → $1,200 · "USD" → US$1,200). */
-export function dinero(v: unknown, codigo?: unknown, decimales?: number): string {
+/** Dinero en pesos: $1,200 (con centavos solo si los hay). */
+export function dinero(v: unknown, decimales?: number): string {
   const n = typeof v === "number" ? v : Number(v);
   if (v == null || v === "" || isNaN(n)) return "";
-  const cod = texto(codigo) || Object.keys(MONEDAS)[0];
-  const simbolo = MONEDAS[cod]?.simbolo ?? `${cod} `;
+  const simbolo = "$";
   const dec = decimales ?? (Number.isInteger(n) ? 0 : 2);
   return `${n < 0 ? "−" : ""}${simbolo}${numero(Math.abs(n), dec)}`;
 }

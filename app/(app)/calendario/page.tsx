@@ -117,7 +117,7 @@ export default async function Calendario({ searchParams }: Props) {
                     <i className="agenda-marca" style={{ background: TIPOS[e.tipo].color }} />
                     <span className="fila-cuerpo">
                       <span className="fila-titulo">{e.titulo}</span>
-                      <span className="fila-meta">{[e.hora, e.detalle].filter(Boolean).join(" · ")}</span>
+                      <span className="fila-meta">{e.detalle}</span>
                     </span>
                   </>
                 );
@@ -134,7 +134,7 @@ export default async function Calendario({ searchParams }: Props) {
 
       <section className="tarjeta bloque">
         <h2 className="seccion-titulo">Verlo en el calendario del iPhone o la Mac</h2>
-        <p className="muted">Suscríbete una vez y los eventos, entregas, citas y vencimientos aparecerán solos en tu calendario (se actualiza cada hora).</p>
+        <p className="muted">Suscríbete una vez y los eventos, entregas y vencimientos aparecerán solos en tu calendario (se actualiza cada hora).</p>
         <a className="btn btn-primario btn-bloque" href={webcal}>Suscribirme</a>
         <CopiarEnlace texto={https} />
         <span className="campo-ayuda">

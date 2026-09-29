@@ -151,9 +151,6 @@ async function Relacionados({ ctx, r, campo, titulo }: { ctx: Contexto; r: AirRe
 /** Botones de decisión en la ficha (los mismos que en el panel de inicio). */
 function AccionesDecision({ r, tabla, yo }: { r: AirRecord; tabla: string; yo: string }) {
   const g = GALERIAS[tabla] ?? {};
-  if (tabla === TABLAS.pagos) {
-    return r.fields[String(g.pagado)] === true ? null : <BotonAccion accion="marcarPagado" id={r.id}>Marcar pagado</BotonAccion>;
-  }
   if (tabla === TABLAS.entrega) {
     const st = r.fields[String(g.status)];
     const lista = (Array.isArray(st) ? st : [st]).map(texto);

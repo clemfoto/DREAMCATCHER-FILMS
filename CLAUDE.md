@@ -44,8 +44,6 @@ Consultar siempre el esquema real con la Metadata API; esta tabla es una referen
 | Contabilidad | tbl4d283L3x8TVLzy | NOMBRE DEL CLIENTE (fórmula de `Cliente`) | Monto Total = rollup del Precio del cliente; Monto Pendiente = fórmula |
 | Gastos | tbl5kqfH0Fh7OhSu9 | GASTOS | Categoría, Comprobante (adjuntos), Cliente → Clientes, Persona que hizo el pago → Equipo |
 | Equipo | tblWfnNYeXrB95dQC | Nombre | Rol (Administrador / Equipo), Email, Teléfono, Usuario Telegram, Activo, campos de invitación (ocultos) |
-| Pagos | tbl1ToFFfPTxgwafa | Concepto | Tipo (Depósito/Balance/Otro), Monto, Moneda (MXN/USD), Fecha de cobro, Pagado, Fecha de pago, Cliente |
-| Citas | tblcNynnivIT8nJjy | Título | Fecha (con hora), Cliente, Con → Equipo, Lugar |
 
 Reglas:
 - Los campos calculados (fórmula, rollup, lookup, count) son de solo lectura en la app.
@@ -70,11 +68,10 @@ Motor genérico: cualquier tabla de la base se muestra como lista de tarjetas, c
 - **Gastos** (solo administrador): lista con categoría, fecha, quién pagó y monto; botón destacado "Foto del ticket" que sube la imagen a Comprobante.
 - **Equipo** (solo administrador): personas, rol y número de eventos.
 
-- **Inicio** (`/inicio`): "Lo que necesita decisión": entregas "En revisión" (visto bueno → "Aprobada"), gastos por encima de `DECISIONES.limiteGasto` (los aprueba un socio distinto de quien pagó), leads sin 1er contacto en 24 h, pagos vencidos hace más de 7 días, clientes próximos sin team y fechas duplicadas. Más "Tus próximos eventos" y "Tus tareas".
-- **Calendario** (`/calendario`): mes con eventos, leads, entregas, citas, vencimientos de tareas y cobros (admin); enlace `webcal://…/api/calendario/<token>.ics` personal para suscribirse.
-- **Pagos** (solo administrador): pendiente por moneda, vencidos, próximos y pagados; "Marcar pagado". El informe mensual usa Pagos cuando tiene registros.
+- **Inicio** (`/inicio`): "Lo que necesita decisión": entregas "En revisión" (visto bueno → "Aprobada"), gastos por encima de `DECISIONES.limiteGasto` (los aprueba un socio distinto de quien pagó), leads sin 1er contacto en 24 h, pagos vencidos (saldo de Contabilidad con fecha de balance pasada hace más de 7 días), clientes próximos sin team y fechas duplicadas. Más "Tus próximos eventos" y "Tus tareas".
+- **Calendario** (`/calendario`): mes con eventos, leads, entregas, vencimientos de tareas y cobros de balance (admin); enlace `webcal://…/api/calendario/<token>.ics` personal para suscribirse.
 
-Navegación móvil: barra inferior con Inicio, Clientes, Tareas, Entrega, Leads y "Más" (Calendario, Pagos, Citas, Gastos, Contabilidad, Informes, Equipo y cualquier tabla nueva). En escritorio, barra lateral.
+Navegación móvil: barra inferior con Inicio, Clientes, Tareas, Entrega, Leads y "Más" (Calendario, Contabilidad, Gastos, Equipo y cualquier tabla nueva). En escritorio, barra lateral.
 
 ## Diseño (del prototipo aprobado)
 
@@ -105,7 +102,7 @@ Viven en la app (`lib/automatizaciones.ts`, `lib/telegram.ts`), no en Make. Las 
 - Team members → invitación por Telegram con botón (o respuesta "confirmo"); se guarda en `Clientes.Confirmados` y se avisa a administradores.
 - Entregas → aviso al responsable 7 días antes (o a administradores si no hay responsable con Telegram).
 - Leads → recordatorio a administradores a los 7, 14 y 21 días para el 2º, 3º y 4º contacto.
-- Día 1 de cada mes → informe contable en la tabla Informes y por Telegram.
+- Día 1 de cada mes → informe contable por Telegram al grupo de administradores.
 - Campos internos ocultos en la app: `CAMPOS_OCULTOS`.
 
 Trabajar fase por fase, con una versión desplegada y probable en el móvil al final de cada una.

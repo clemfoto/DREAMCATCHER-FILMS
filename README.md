@@ -57,10 +57,9 @@ Las tareas programadas (`netlify/functions/auto-*.mjs`) solo corren en el despli
 | `lib/auth.ts`, `lib/clave.ts`, `lib/token.ts`, `proxy.ts` | Email + contraseña con código de invitación personal; cookie de sesión firmada de 30 días. El rol y el acceso se releen de Equipo en cada petición. |
 | `app/(app)/inicio`, `lib/panel.ts` | Panel "Lo que necesita decisión" (entregas en revisión, gastos por aprobar, leads sin contacto, pagos vencidos, clientes sin team, fechas duplicadas). Límites en `DECISIONES`. |
 | `app/(app)/calendario`, `lib/calendario.ts`, `app/api/calendario` | Calendario mensual y suscripción `.ics` personal para iPhone/Mac/Google. |
-| `components/vistas/Pagos.tsx` | Contabilidad por pagos: depósito y balance con fecha de cobro, "marcar pagado", pesos y dólares. |
 | `app/(app)/t/[tabla]/…` | Motor genérico: lista, ficha, nuevo y editar para cualquier tabla. |
 | `components/vistas/` | Diseños a medida de Clientes, Tareas, Entrega, Leads, Contabilidad, Gastos y Equipo. |
-| `lib/automatizaciones.ts`, `lib/telegram.ts` | Avisos de clientes, confirmaciones, recordatorios de entrega y leads, informe mensual. |
+| `lib/automatizaciones.ts`, `lib/telegram.ts` | Avisos de clientes, confirmaciones, recordatorios de entrega y leads, informe mensual por Telegram. |
 | `app/(app)/t/acciones.ts` | Guardar, marcar tarea, convertir lead y borrar (Server Actions con permisos). |
 
 ### Notas

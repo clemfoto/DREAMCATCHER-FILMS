@@ -69,7 +69,7 @@ export default async function Inicio() {
               const loPague = pagadores.includes(u.id);
               return (
                 <Fila key={r.id} href={ruta(TABLAS.gastos, r.id)} titulo={texto(r.fields["GASTOS"]) || "Gasto"}
-                  meta={[dinero(aNumero(v(r, TABLAS.gastos, "monto")), "MXN"), fecha(v(r, TABLAS.gastos, "fecha")), texto(v(r, TABLAS.gastos, "categoria"))]}
+                  meta={[dinero(aNumero(v(r, TABLAS.gastos, "monto"))), fecha(v(r, TABLAS.gastos, "fecha")), texto(v(r, TABLAS.gastos, "categoria"))]}
                   lado={<Avatares ids={pagadores} enlaces={enlaces} />}
                   accion={loPague ? <span className="nota-chica">Lo aprueba otro socio</span> : (
                     <>
@@ -90,12 +90,11 @@ export default async function Inicio() {
         </Grupo>
 
         {admin && (
-          <Grupo titulo="Pagos vencidos" n={d.pagosVencidos.length} nota={`Más de ${DECISIONES.diasPagoVencido} días después de la fecha de cobro.`}>
+          <Grupo titulo="Pagos vencidos" n={d.pagosVencidos.length} nota={`Saldo pendiente más de ${DECISIONES.diasPagoVencido} días después de la fecha de balance.`}>
             {d.pagosVencidos.map((r) => (
-              <Fila key={r.id} href={ruta(TABLAS.pagos, r.id)} titulo={nombreCliente(r, g(TABLAS.pagos, "cliente")) || texto(r.fields["Concepto"]) || "Pago"}
-                meta={[texto(v(r, TABLAS.pagos, "tipo")), `vencido ${hace(diasHasta(v(r, TABLAS.pagos, "fechaCobro")))}`]}
-                lado={<strong className="precio">{dinero(v(r, TABLAS.pagos, "monto"), v(r, TABLAS.pagos, "moneda"))}</strong>}
-                accion={<BotonAccion accion="marcarPagado" id={r.id}>Marcar pagado</BotonAccion>} />
+              <Fila key={r.id} href={ruta(TABLAS.contabilidad, r.id)} titulo={nombreCliente(r, "Cliente") || texto(r.fields["NOMBRE DEL CLIENTE"]) || "Pago"}
+                meta={[`Balance vencido ${hace(diasHasta(v(r, TABLAS.contabilidad, "fechaBalance")))}`]}
+                lado={<strong className="precio">{dinero(aNumero(v(r, TABLAS.contabilidad, "pendiente")))}</strong>} />
             ))}
           </Grupo>
         )}

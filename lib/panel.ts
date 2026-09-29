@@ -26,15 +26,15 @@ export async function decisiones(u: Usuario) {
   const gE = GALERIAS[TABLAS.entrega];
   const gL = GALERIAS[TABLAS.leads];
   const gG = GALERIAS[TABLAS.gastos];
-  const gP = GALERIAS[TABLAS.pagos];
+  const gK = GALERIAS[TABLAS.contabilidad];
   const gT = GALERIAS[TABLAS.tareas];
 
-  const [clientes, entregas, leads, gastos, pagos, tareas] = await Promise.all([
+  const [clientes, entregas, leads, gastos, conta, tareas] = await Promise.all([
     leer(TABLAS.clientes),
     leer(TABLAS.entrega),
     leer(TABLAS.leads),
     admin ? leer(TABLAS.gastos) : Promise.resolve([]),
-    admin ? leer(TABLAS.pagos) : Promise.resolve([]),
+    admin ? leer(TABLAS.contabilidad) : Promise.resolve([]),
     leer(TABLAS.tareas),
   ]);
 
@@ -61,10 +61,10 @@ export async function decisiones(u: Usuario) {
       Date.parse(r.createdTime) < limiteLead,
   );
 
-  // Pagos vencidos hace más de 7 días
-  const pagosVencidos = pagos
-    .filter((r) => f(r, "pagado", gP) !== true && (diasHasta(f(r, "fechaCobro", gP)) ?? 1) <= -DECISIONES.diasPagoVencido)
-    .sort((a, b) => String(f(a, "fechaCobro", gP)).localeCompare(String(f(b, "fechaCobro", gP))));
+  // Pagos vencidos: saldo pendiente en Contabilidad y fecha de balance pasada hace más de 7 días
+  const pagosVencidos = conta
+    .filter((r) => aNumero(f(r, "pendiente", gK)) > 0 && (diasHasta(f(r, "fechaBalance", gK)) ?? 1) <= -DECISIONES.diasPagoVencido)
+    .sort((a, b) => String(f(a, "fechaBalance", gK)).localeCompare(String(f(b, "fechaBalance", gK))));
 
   // Próximos eventos (desde hoy)
   const proximos = clientes

@@ -1,23 +1,21 @@
 import "server-only";
 import { getEsquema, getRegistros, type AirRecord } from "@/lib/airtable";
 import type { Usuario } from "@/lib/auth";
-import { campoPrincipal, nombresDe, puedeVerTabla, rutaTabla, textoPrincipal } from "@/lib/esquema";
-import { dinero, isoALocal, texto } from "@/lib/formato";
+import { nombresDe, puedeVerTabla, rutaTabla } from "@/lib/esquema";
+import { dinero, texto } from "@/lib/formato";
+import { aNumero } from "@/lib/lista";
 import { firmaCorta } from "@/lib/token";
 import { AUTOMATIZACIONES, GALERIAS, TABLAS } from "@/config/galerias";
 
 /** Todo lo que tiene fecha en la base, como una sola lista de eventos (calendario de la app y feed .ics). */
 
-export type TipoEvento = "evento" | "lead" | "entrega" | "cita" | "tarea" | "pago";
+export type TipoEvento = "evento" | "lead" | "entrega" | "tarea" | "pago";
 
 export type EventoCal = {
   uid: string;
   tipo: TipoEvento;
   /** "YYYY-MM-DD" en la zona del negocio. */
   dia: string;
-  /** ISO UTC si tiene hora (citas). */
-  inicio?: string;
-  hora?: string;
   titulo: string;
   detalle: string;
   href?: string;
@@ -27,7 +25,6 @@ export const TIPOS: Record<TipoEvento, { nombre: string; color: string }> = {
   evento: { nombre: "Eventos", color: "#4a565d" },
   lead: { nombre: "Leads", color: "#b7791f" },
   entrega: { nombre: "Entregas", color: "#55336a" },
-  cita: { nombre: "Citas", color: "#274766" },
   tarea: { nombre: "Vencimientos", color: "#9a3b2e" },
   pago: { nombre: "Cobros", color: "#2f5226" },
 };
@@ -43,19 +40,17 @@ export async function eventosCalendario(u: Usuario): Promise<EventoCal[]> {
     const t = tabla(id);
     return t ? `${rutaTabla(t)}/${rec}` : undefined;
   };
-  const [clientes, leads, entregas, citas, tareas, pagos, nombresCliente, nombresEquipo] = await Promise.all([
+  const [clientes, leads, entregas, tareas, conta, nombresCliente, nombresEquipo] = await Promise.all([
     leer(TABLAS.clientes),
     leer(TABLAS.leads),
     leer(TABLAS.entrega),
-    leer(TABLAS.citas),
     leer(TABLAS.tareas),
-    leer(TABLAS.pagos),
+    leer(TABLAS.contabilidad),
     nombresDe(TABLAS.clientes),
     nombresDe(TABLAS.equipo),
   ]);
   const cliente = (v: unknown) => ids(v).map((id) => nombresCliente.get(id)).filter(Boolean).join(", ");
   const personas = (v: unknown) => ids(v).map((id) => nombresEquipo.get(id)).filter(Boolean).join(", ");
-  const g = (t: string, k: string) => String(GALERIAS[t]?.[k] ?? "");
   const out: EventoCal[] = [];
 
   const gC = GALERIAS[TABLAS.clientes];
@@ -102,29 +97,6 @@ export async function eventosCalendario(u: Usuario): Promise<EventoCal[]> {
     });
   }
 
-  const tCitas = tabla(TABLAS.citas);
-  if (tCitas) {
-    const principal = campoPrincipal(tCitas).name;
-    for (const r of citas) {
-      const iso = r.fields[g(TABLAS.citas, "fecha")];
-      if (typeof iso !== "string" || !iso) continue;
-      const local = esDia(iso) && iso.length === 10 ? iso : isoALocal(iso);
-      if (!local) continue;
-      out.push({
-        uid: r.id,
-        tipo: "cita",
-        dia: local.slice(0, 10),
-        inicio: iso.length > 10 ? iso : undefined,
-        hora: local.length > 10 ? local.slice(11, 16) : undefined,
-        titulo: textoPrincipal(r.fields[principal]) || "Cita",
-        detalle: [cliente(r.fields[g(TABLAS.citas, "cliente")]), texto(r.fields[g(TABLAS.citas, "lugar")]), personas(r.fields[g(TABLAS.citas, "con")])]
-          .filter(Boolean)
-          .join(" · "),
-        href: ruta(TABLAS.citas, r.id),
-      });
-    }
-  }
-
   const gT = GALERIAS[TABLAS.tareas];
   for (const r of tareas) {
     const d = r.fields[String(gT.fecha)];
@@ -139,21 +111,23 @@ export async function eventosCalendario(u: Usuario): Promise<EventoCal[]> {
     });
   }
 
-  const gP = GALERIAS[TABLAS.pagos];
-  for (const r of pagos) {
-    const d = r.fields[String(gP.fechaCobro)];
-    if (!esDia(d) || r.fields[String(gP.pagado)] === true) continue;
+  // Cobros: saldo pendiente de Contabilidad en su fecha de balance (solo administradores).
+  const gK = GALERIAS[TABLAS.contabilidad];
+  for (const r of conta) {
+    const d = r.fields[String(gK.fechaBalance)];
+    const pendiente = aNumero(r.fields[String(gK.pendiente)]);
+    if (!esDia(d) || pendiente <= 0) continue;
     out.push({
       uid: r.id,
       tipo: "pago",
       dia: d.slice(0, 10),
-      titulo: `Cobro: ${cliente(r.fields[String(gP.cliente)]) || texto(r.fields["Concepto"]) || "pago"}`,
-      detalle: [texto(r.fields[String(gP.tipo)]), dinero(r.fields[String(gP.monto)], r.fields[String(gP.moneda)])].filter(Boolean).join(" · "),
-      href: ruta(TABLAS.pagos, r.id),
+      titulo: `Cobro: ${cliente(r.fields["Cliente"]) || texto(r.fields["NOMBRE DEL CLIENTE"]) || "balance"}`,
+      detalle: `Balance pendiente ${dinero(pendiente)}`,
+      href: ruta(TABLAS.contabilidad, r.id),
     });
   }
 
-  return out.sort((a, b) => (a.dia + (a.hora ?? "")).localeCompare(b.dia + (b.hora ?? "")));
+  return out.sort((a, b) => a.dia.localeCompare(b.dia));
 }
 
 /* ---------- suscripción (.ics) ---------- */
@@ -194,14 +168,9 @@ export function aIcs(eventos: EventoCal[], base: string, nombre: string): string
   ];
   for (const e of eventos) {
     lineas.push("BEGIN:VEVENT", `UID:${e.uid}-${e.tipo}@dreamcatcherfilms`, `DTSTAMP:${ahora}`);
-    if (e.inicio) {
-      const ini = new Date(e.inicio);
-      lineas.push(`DTSTART:${utc(ini)}`, `DTEND:${utc(new Date(ini.getTime() + 3600_000))}`);
-    } else {
-      const fin = new Date(`${e.dia}T12:00:00Z`);
-      fin.setUTCDate(fin.getUTCDate() + 1);
-      lineas.push(`DTSTART;VALUE=DATE:${sinGuiones(e.dia)}`, `DTEND;VALUE=DATE:${sinGuiones(fin.toISOString().slice(0, 10))}`, "TRANSP:TRANSPARENT");
-    }
+    const fin = new Date(`${e.dia}T12:00:00Z`);
+    fin.setUTCDate(fin.getUTCDate() + 1);
+    lineas.push(`DTSTART;VALUE=DATE:${sinGuiones(e.dia)}`, `DTEND;VALUE=DATE:${sinGuiones(fin.toISOString().slice(0, 10))}`, "TRANSP:TRANSPARENT");
     lineas.push(`SUMMARY:${escapar(e.titulo)}`, `CATEGORIES:${escapar(TIPOS[e.tipo].nombre)}`);
     if (e.detalle) lineas.push(`DESCRIPTION:${escapar(e.detalle)}`);
     if (e.href) lineas.push(`URL:${base}${e.href}`);

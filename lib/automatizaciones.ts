@@ -9,7 +9,7 @@ import {
   type AirRecord,
 } from "@/lib/airtable";
 import { campoPrincipal, textoPrincipal } from "@/lib/esquema";
-import { diasHasta, fecha, hoyISO, moneda, numero, texto } from "@/lib/formato";
+import { diasHasta, fecha, hoyISO, moneda, texto } from "@/lib/formato";
 import { aNumero } from "@/lib/lista";
 import { enviar, enviarAdmins, h } from "@/lib/telegram";
 import { AUTOMATIZACIONES as A, DECISIONES, EQUIPO, GALERIAS, TABLAS, ZONA_HORARIA } from "@/config/galerias";
@@ -314,63 +314,26 @@ export function mesAnterior(): string {
 const nombreMes = (mes: string) =>
   new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(new Date(`${mes}-15T12:00:00Z`));
 
-export async function informeMensual(mes = mesAnterior(), repetir = false): Promise<string[]> {
-  const I = A.informe;
-  const existentes = await getRegistrosSinCache(TABLAS.informes);
-  const previo = existentes.find((r) => r.fields[I.mes] === mes);
-  if (previo && !repetir) return [`El informe de ${mes} ya existe.`];
-
-  const [conta, gastos, clientes, pagos] = await Promise.all([
+/** Informe del mes por Telegram al grupo de administradores (lo lanza la tarea programada del día 1). */
+export async function informeMensual(mes = mesAnterior()): Promise<string[]> {
+  const [conta, gastos, clientes] = await Promise.all([
     getRegistrosSinCache(TABLAS.contabilidad),
     getRegistrosSinCache(TABLAS.gastos),
     getRegistrosSinCache(TABLAS.clientes),
-    getRegistrosSinCache(TABLAS.pagos).catch(() => []),
   ]);
   const enMes = (v: unknown) => typeof v === "string" && v.startsWith(mes);
   const $ = (n: number) => dinero(n) || "$0";
-  const us = (n: number) => `US$${numero(n, 0)}`;
 
-  // Ingresos: con la tabla Pagos (pagos marcados como pagados en el mes, en pesos y dólares);
-  // si todavía no se usa, con la tabla Contabilidad antigua (depósitos y balances por fecha).
-  const gPag = GALERIAS[TABLAS.pagos];
-  const usarPagos = pagos.length > 0;
-  const monedaPago = (r: AirRecord) => texto(r.fields[str(gPag.moneda)]) || "MXN";
-  let ingresos = 0;
-  let ingresosUsd = 0;
-  let pendiente = 0;
-  let pendienteUsd = 0;
-  let lineasIngresos: string[];
-  if (usarPagos) {
-    const cobrados = pagos.filter((r) => r.fields[str(gPag.pagado)] === true && enMes(r.fields[str(gPag.fechaPago)]));
-    for (const r of cobrados) {
-      if (monedaPago(r) === "USD") ingresosUsd += aNumero(r.fields[str(gPag.monto)]);
-      else ingresos += aNumero(r.fields[str(gPag.monto)]);
-    }
-    for (const r of pagos.filter((x) => x.fields[str(gPag.pagado)] !== true)) {
-      if (monedaPago(r) === "USD") pendienteUsd += aNumero(r.fields[str(gPag.monto)]);
-      else pendiente += aNumero(r.fields[str(gPag.monto)]);
-    }
-    const nombresCli = new Map(clientes.map((c) => [c.id, nombreCliente(c)]));
-    lineasIngresos = cobrados.map((r) => {
-      const cli = ((r.fields[str(gPag.cliente)] as string[] | undefined) ?? []).map((id) => nombresCli.get(id)).join(", ");
-      const m = aNumero(r.fields[str(gPag.monto)]);
-      return `  ${cli || texto(r.fields["Concepto"]) || "Pago"} · ${texto(r.fields[str(gPag.tipo)])}: ${monedaPago(r) === "USD" ? us(m) : $(m)}`;
-    });
-  } else {
-    const depositos = conta.filter((r) => enMes(r.fields[C.contaFechaDeposito]));
-    const totalDepositos = depositos.reduce((s, r) => s + aNumero(r.fields[C.contaDeposito]), 0);
-    const balances = conta.filter((r) => enMes(r.fields[C.contaFechaBalance]));
-    const totalBalances = balances.reduce(
-      (s, r) => s + Math.max(0, aNumero(r.fields[C.contaTotal]) - aNumero(r.fields[C.contaDeposito])),
-      0,
-    );
-    ingresos = totalDepositos + totalBalances;
-    pendiente = conta.reduce((s, r) => s + Math.max(0, aNumero(r.fields[C.contaPendiente])), 0);
-    lineasIngresos = [
-      `  Depósitos cobrados (${depositos.length}): ${$(totalDepositos)}`,
-      `  Balances con fecha en el mes (${balances.length}): ${$(totalBalances)}`,
-    ];
-  }
+  // Ingresos: depósitos y balances de Contabilidad con fecha en el mes.
+  const depositos = conta.filter((r) => enMes(r.fields[C.contaFechaDeposito]));
+  const totalDepositos = depositos.reduce((s, r) => s + aNumero(r.fields[C.contaDeposito]), 0);
+  const balances = conta.filter((r) => enMes(r.fields[C.contaFechaBalance]));
+  const totalBalances = balances.reduce(
+    (s, r) => s + Math.max(0, aNumero(r.fields[C.contaTotal]) - aNumero(r.fields[C.contaDeposito])),
+    0,
+  );
+  const ingresos = totalDepositos + totalBalances;
+  const pendiente = conta.reduce((s, r) => s + Math.max(0, aNumero(r.fields[C.contaPendiente])), 0);
 
   // Los gastos rechazados no cuentan.
   const gastosMes = gastos.filter(
@@ -390,35 +353,21 @@ export async function informeMensual(mes = mesAnterior(), repetir = false): Prom
   const resultado = ingresos - totalGastos;
 
   const detalle = [
-    `INGRESOS ${$(ingresos)}${ingresosUsd ? ` + ${us(ingresosUsd)}` : ""}`,
-    ...lineasIngresos,
+    `INGRESOS ${$(ingresos)}`,
+    `  Depósitos cobrados (${depositos.length}): ${$(totalDepositos)}`,
+    `  Balances con fecha en el mes (${balances.length}): ${$(totalBalances)}`,
     ``,
     `GASTOS ${$(totalGastos)} (${gastosMes.length} movimientos)`,
     ...[...porCategoria.entries()].sort((a, b) => b[1] - a[1]).map(([c, n]) => `  ${c}: ${$(n)}`),
     ``,
-    `RESULTADO (pesos) ${$(resultado)}${ingresosUsd ? ` · más ${us(ingresosUsd)} en dólares` : ""}`,
+    `RESULTADO ${$(resultado)}`,
     ``,
     `Eventos del mes: ${eventos.length} (facturación ${$(facturado)})`,
     ...eventos.map((r) => `  ${nombreCliente(r)} · ${fecha(r.fields[str(gCli.fecha)])}`),
     ``,
-    `Pendiente de cobro total a hoy: ${$(pendiente)}${pendienteUsd ? ` + ${us(pendienteUsd)}` : ""}`,
+    `Pendiente de cobro total a hoy: ${$(pendiente)}`,
   ].join("\n");
 
-  const campos = {
-    [I.mes]: mes,
-    [I.ingresos]: ingresos,
-    [I.gastos]: totalGastos,
-    [I.resultado]: resultado,
-    [I.pendiente]: pendiente,
-    ...(usarPagos ? { [I.ingresosUsd]: ingresosUsd, [I.pendienteUsd]: pendienteUsd } : {}),
-    [I.eventos]: eventos.length,
-    [I.detalle]: detalle,
-    [I.generado]: hoyISO(),
-  };
-  if (previo) await actualizarRegistro(TABLAS.informes, previo.id, campos);
-  else await crearRegistro(TABLAS.informes, campos);
-  invalidar(TABLAS.informes);
-
   await enviarAdmins(`📊 <b>Informe contable · ${h(nombreMes(mes))}</b>\n\n<pre>${h(detalle)}</pre>`);
-  return [`Informe de ${mes} generado.`];
+  return [`Informe de ${mes} enviado por Telegram.`];
 }
