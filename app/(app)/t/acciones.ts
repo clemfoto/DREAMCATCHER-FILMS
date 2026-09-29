@@ -93,7 +93,7 @@ export async function guardarRegistro(
   const fields: Record<string, unknown> = {};
   try {
     for (const f of t.fields) {
-      if (!form.has(`p:${f.id}`) || esSoloLectura(f) || !campoVisible(u, f)) continue;
+      if (!form.has(`p:${f.id}`) || esSoloLectura(f) || !campoVisible(u, f, t)) continue;
       const v = leerCampo(f, form);
       if (v !== undefined) fields[f.name] = v;
     }

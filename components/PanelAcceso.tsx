@@ -29,7 +29,7 @@ export default async function PanelAcceso({ r, esYo }: { r: AirRecord; esYo: boo
   return (
     <section className="tarjeta bloque">
       <div className="cabecera-fila">
-        <h2 className="seccion-titulo">Acceso a la app</h2>
+        <h2 className="seccion-titulo">Rol y acceso a la app</h2>
         {estado && <Chip nombre={estado} />}
       </div>
       <p className="muted">{resumen}</p>
@@ -41,6 +41,8 @@ export default async function PanelAcceso({ r, esYo }: { r: AirRecord; esYo: boo
       )}
       <BotonesAcceso
         id={r.id}
+        rol={String(r.fields[EQUIPO.rol] ?? "")}
+        esYo={esYo}
         mensaje={mensaje}
         hayCodigo={Boolean(codigo)}
         cancelable={!esYo && estado !== EQUIPO.invitacion.cancelada && (Boolean(codigo) || tieneClave || estado !== "")}

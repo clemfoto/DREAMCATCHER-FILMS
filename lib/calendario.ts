@@ -1,7 +1,7 @@
 import "server-only";
 import { getEsquema, getRegistros, type AirRecord } from "@/lib/airtable";
 import type { Usuario } from "@/lib/auth";
-import { nombresDe, puedeVerTabla, rutaTabla } from "@/lib/esquema";
+import { esAdmin, nombresDe, puedeVerTabla, rutaTabla } from "@/lib/esquema";
 import { dinero, texto } from "@/lib/formato";
 import { aNumero } from "@/lib/lista";
 import { firmaCorta } from "@/lib/token";
@@ -34,10 +34,13 @@ const esDia = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2
 
 export async function eventosCalendario(u: Usuario): Promise<EventoCal[]> {
   const esquema = await getEsquema();
-  const tabla = (id: string) => (puedeVerTabla(u, id) ? esquema.find((t) => t.id === id) : undefined);
-  const leer = async (id: string) => (tabla(id) ? getRegistros(id) : ([] as AirRecord[]));
+  // El rol Equipo ve en el calendario los eventos, las entregas y las tareas (sin leads ni cobros),
+  // aunque solo puede abrir las tablas que tiene permitidas.
+  const visibles: string[] = esAdmin(u) ? Object.values(TABLAS) : [TABLAS.clientes, TABLAS.entrega, TABLAS.tareas];
+  const leer = async (id: string) =>
+    visibles.includes(id) && esquema.some((t) => t.id === id) ? getRegistros(id) : ([] as AirRecord[]);
   const ruta = (id: string, rec: string) => {
-    const t = tabla(id);
+    const t = puedeVerTabla(u, id) ? esquema.find((x) => x.id === id) : undefined;
     return t ? `${rutaTabla(t)}/${rec}` : undefined;
   };
   const [clientes, leads, entregas, tareas, conta, nombresCliente, nombresEquipo] = await Promise.all([

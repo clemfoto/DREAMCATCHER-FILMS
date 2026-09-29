@@ -1,6 +1,6 @@
 import "server-only";
 import { getEsquema, getRegistros, type Field, type Table } from "@/lib/airtable";
-import { CAMPOS_OCULTOS, CAMPOS_SOLO_BOTONES, EQUIPO, NAV_MAS, NAV_PRINCIPAL, TABLAS_ROL_EQUIPO } from "@/config/galerias";
+import { CAMPOS_OCULTOS, CAMPOS_SOLO_BOTONES, EQUIPO, GALERIAS, NAV_MAS, NAV_PRINCIPAL, TABLAS_ROL_EQUIPO } from "@/config/galerias";
 import type { Usuario } from "@/lib/auth";
 
 /** Tipos calculados por Airtable: se muestran pero no se editan. */
@@ -50,8 +50,10 @@ export function puedeVerTabla(u: Usuario, tableId: string): boolean {
  * Un campo es visible si no es "(antiguo)" y, cuando enlaza a otra tabla,
  * el usuario puede ver esa tabla (las personas de Equipo siempre se ven).
  */
-export function campoVisible(u: Usuario, f: Field): boolean {
+export function campoVisible(u: Usuario, f: Field, t?: Table): boolean {
   if (esAntiguo(f) || CAMPOS_OCULTOS.includes(f.name)) return false;
+  const ocultar = t ? (GALERIAS[t.id]?.ocultar as string[] | undefined) : undefined;
+  if (ocultar?.includes(f.name)) return false;
   const destino = f.options?.linkedTableId;
   if (f.type === "multipleRecordLinks" && destino) {
     return destino === EQUIPO.tabla || puedeVerTabla(u, destino);
@@ -60,7 +62,7 @@ export function campoVisible(u: Usuario, f: Field): boolean {
 }
 
 export function camposVisibles(u: Usuario, t: Table): Field[] {
-  return t.fields.filter((f) => campoVisible(u, f));
+  return t.fields.filter((f) => campoVisible(u, f, t));
 }
 
 export function campoPrincipal(t: Table): Field {
@@ -91,9 +93,12 @@ export async function navegacion(u: Usuario) {
     ...tablas.filter((t) => !conocidas.has(t.id)),
   ];
   const item = (t: Table) => ({ id: t.id, titulo: titulo(t), href: rutaTabla(t) });
+  const calendario = { id: "calendario", titulo: "Calendario", href: "/calendario" };
+  // El rol Equipo solo tiene Tareas y Calendario; el Administrador, además, el panel de inicio.
+  if (!esAdmin(u)) return { principal: [...principal.map(item), calendario], mas: mas.map(item) };
   return {
     principal: [{ id: "inicio", titulo: "Inicio", href: "/inicio" }, ...principal.map(item)],
-    mas: [{ id: "calendario", titulo: "Calendario", href: "/calendario" }, ...mas.map(item)],
+    mas: [calendario, ...mas.map(item)],
   };
 }
 

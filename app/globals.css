@@ -1741,3 +1741,45 @@ textarea.input {
     color: var(--texto-2);
   }
 }
+
+/* ---------- rol ---------- */
+
+.rol-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+
+.rol-opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--tarjeta);
+  text-align: left;
+  cursor: pointer;
+}
+
+.rol-opcion small {
+  color: var(--texto-2);
+  font-size: 12.5px;
+}
+
+.rol-opcion.activo {
+  border-color: var(--acento);
+  background: var(--acento-suave);
+  box-shadow: inset 0 0 0 1px var(--acento);
+}
+
+.rol-opcion:disabled {
+  cursor: default;
+}
+
+.rol-opcion:disabled:not(.activo) {
+  opacity: 0.5;
+}

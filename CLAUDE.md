@@ -53,7 +53,8 @@ Reglas:
 ## Permisos
 
 - **Administrador:** acceso a todo, incluidas Contabilidad, Gastos y Equipo.
-- **Equipo:** Clientes, Tareas, Entrega y Leads. Sin Contabilidad, Gastos ni Equipo.
+- **Equipo:** solo Tareas y Calendario (en el calendario ve eventos, entregas y tareas, sin poder abrir Clientes ni Entrega). Sin panel de inicio, Clientes, Entrega, Leads, Contabilidad, Gastos ni Equipo.
+- El rol se elige en la ficha de la persona (Equipo → "Rol y acceso a la app").
 - Los permisos se comprueban en el servidor, no solo ocultando botones.
 
 ## Galerías
@@ -66,7 +67,7 @@ Motor genérico: cualquier tabla de la base se muestra como lista de tarjetas, c
 - **Leads:** tarjetas con los cuatro contactos como pasos (1º–4º) y quién hizo cada uno; acción para convertir un lead en cliente.
 - **Contabilidad** (solo administrador): total pendiente arriba y una tarjeta por cliente con total, depósito, pendiente y fecha de balance.
 - **Gastos** (solo administrador): lista con categoría, fecha, quién pagó y monto; botón destacado "Foto del ticket" que sube la imagen a Comprobante.
-- **Equipo** (solo administrador): personas, rol y número de eventos.
+- **Equipo** (solo administrador): personas, rol y número de eventos. La ficha oculta los enlaces inversos y el Telegram Chat ID (`ocultar` en la configuración de Equipo).
 
 - **Inicio** (`/inicio`): "Lo que necesita decisión": entregas "En revisión" (visto bueno → "Aprobada"), gastos por encima de `DECISIONES.limiteGasto` (los aprueba un socio distinto de quien pagó), leads sin 1er contacto en 24 h, pagos vencidos (saldo de Contabilidad con fecha de balance pasada hace más de 7 días), clientes próximos sin team y fechas duplicadas. Más "Tus próximos eventos" y "Tus tareas".
 - **Calendario** (`/calendario`): mes con eventos, leads, entregas, vencimientos de tareas y cobros de balance (admin); enlace `webcal://…/api/calendario/<token>.ics` personal para suscribirse.

@@ -12,7 +12,8 @@ export default function Equipo({ ctx, regs }: { ctx: Contexto; regs: AirRecord[]
     <div className="filas">
       {regs.map((r) => {
         const nombre = textoPrincipal(r.fields[principal.name]) || "Sin nombre";
-        const eventos = ((val(r, cfg(ctx, "eventos")) as unknown[]) ?? []).length;
+        // "Eventos asignados" no se muestra en la ficha, pero sí se cuenta aquí.
+        const eventos = ((r.fields[String(ctx.g.eventos)] as unknown[] | undefined) ?? []).length;
         const activo = val(r, cfg(ctx, "activo")) === true;
         const rol = texto(val(r, cfg(ctx, "rol")));
         return (

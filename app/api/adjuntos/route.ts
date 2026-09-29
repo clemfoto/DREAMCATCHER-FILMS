@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const t = await tablaPorId(String(form.get("tabla") ?? ""));
   if (!t || !puedeVerTabla(u, t.id)) return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   const f = t.fields.find((x) => x.id === form.get("campo"));
-  if (!f || f.type !== "multipleAttachments" || !campoVisible(u, f)) {
+  if (!f || f.type !== "multipleAttachments" || !campoVisible(u, f, t)) {
     return NextResponse.json({ error: "Campo no válido" }, { status: 400 });
   }
   const archivo = form.get("archivo");

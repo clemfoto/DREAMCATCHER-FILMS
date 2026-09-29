@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import type { AirRecord } from "@/lib/airtable";
 import { requireUsuario } from "@/lib/auth";
@@ -27,6 +28,8 @@ function hace(dias: number | null): string {
 export default async function Inicio() {
   const u = await requireUsuario();
   const admin = esAdmin(u);
+  // El panel de decisiones es solo para administradores.
+  if (!admin) redirect("/");
   const [d, enlaces] = await Promise.all([decisiones(u), enlacesGlobales(u)]);
   const clientes = enlaces.nombres[TABLAS.clientes];
   const ruta = (tabla: string, id: string) => (enlaces.rutas[tabla] ? `${enlaces.rutas[tabla]}/${id}` : undefined);

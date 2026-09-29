@@ -34,8 +34,11 @@ export const EQUIPO = {
   invitacion: { pendiente: "Pendiente", usada: "Usada", cancelada: "Cancelada" },
 };
 
-/** Tablas que el rol "Equipo" puede ver. El Administrador ve todo. */
-export const TABLAS_ROL_EQUIPO: string[] = [TABLAS.clientes, TABLAS.tareas, TABLAS.entrega, TABLAS.leads];
+/**
+ * Tablas que el rol "Equipo" puede ver (además del Calendario). El Administrador ve todo.
+ * El calendario les muestra los eventos y entregas aunque no puedan abrir esas tablas.
+ */
+export const TABLAS_ROL_EQUIPO: string[] = [TABLAS.tareas];
 
 /** Barra inferior del móvil (el resto de tablas va en "Más"). */
 export const NAV_PRINCIPAL: string[] = [TABLAS.clientes, TABLAS.tareas, TABLAS.entrega, TABLAS.leads];
@@ -228,6 +231,23 @@ export const GALERIAS: Record<string, Galeria> = {
     email: "Email",
     telefono: "Teléfono",
     activo: "Activo",
+    /** Campos de la ficha y el formulario de Equipo que no se muestran (enlaces inversos e internos). */
+    ocultar: [
+      "Clientes ingresados",
+      "Eventos asignados",
+      "Tareas asignadas",
+      "Entregas a cargo",
+      "Leads (1er contacto)",
+      "Leads (2do contacto)",
+      "Leads (3er contacto)",
+      "Leads (4to contacto)",
+      "Gastos pagados",
+      "Telegram Chat ID",
+      "Eventos confirmados",
+      "Gastos aprobados",
+      "Invitaciones Telegram",
+      "Citas",
+    ],
   },
 };
 

@@ -50,7 +50,7 @@ export async function entrar(_: EstadoAcceso, form: FormData): Promise<EstadoAcc
     return { error: "Email o contraseña incorrectos." };
   }
   await abrirSesion(email);
-  redirect("/inicio");
+  redirect("/");
 }
 
 /** Primera vez (o tras un código nuevo): email + código de invitación + contraseña. */
@@ -82,5 +82,5 @@ export async function registrarse(_: EstadoAcceso, form: FormData): Promise<Esta
   });
   updateTag(tagTabla(EQUIPO.tabla));
   await abrirSesion(email);
-  redirect("/inicio");
+  redirect("/");
 }

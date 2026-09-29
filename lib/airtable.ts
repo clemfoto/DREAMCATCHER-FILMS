@@ -1,5 +1,5 @@
 import "server-only";
-import { unstable_cache } from "next/cache";
+import { revalidateTag, unstable_cache } from "next/cache";
 import { CACHE_SEGUNDOS } from "@/config/galerias";
 
 /**
@@ -116,12 +116,26 @@ async function leerRegistros(tableId: string): Promise<AirRecord[]> {
 /** Lectura directa, sin caché (para el login, donde un dato viejo bloquearía el acceso). */
 export const getRegistrosSinCache = leerRegistros;
 
-/** Todos los registros de una tabla (cacheados unos segundos, se invalidan al escribir). */
-export function getRegistros(tableId: string): Promise<AirRecord[]> {
-  return unstable_cache(() => leerRegistros(tableId), ["airtable-registros", BASE, tableId], {
-    revalidate: CACHE_SEGUNDOS,
-    tags: [tagTabla(tableId)],
-  })();
+/**
+ * Todos los registros de una tabla (cacheados unos segundos, se invalidan al escribir).
+ * Si la tabla ya no existe (se borró en Airtable y el esquema en caché aún la tiene),
+ * devuelve una lista vacía y pide releer el esquema, en lugar de romper la página.
+ */
+export async function getRegistros(tableId: string): Promise<AirRecord[]> {
+  try {
+    return await unstable_cache(() => leerRegistros(tableId), ["airtable-registros", BASE, tableId], {
+      revalidate: CACHE_SEGUNDOS,
+      tags: [tagTabla(tableId)],
+    })();
+  } catch (e) {
+    const noExiste = e instanceof AirtableError ? e.status === 404 || e.status === 403 : /Airtable (404|403)/.test(String(e));
+    if (!noExiste) throw e;
+    console.warn(`[airtable] la tabla ${tableId} no existe o no es accesible: se ignora`, String(e));
+    try {
+      revalidateTag(TAG_ESQUEMA, { expire: 0 });
+    } catch {}
+    return [];
+  }
 }
 
 export async function getRegistro(tableId: string, id: string): Promise<AirRecord | null> {

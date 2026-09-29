@@ -39,7 +39,7 @@ Las tareas programadas (`netlify/functions/auto-*.mjs`) solo corren en el despli
 
 ### Dar acceso a alguien
 
-1. En **Equipo** (app o Airtable): su fila con `Nombre`, `Email`, `Rol` y `Activo` marcado.
+1. En **Equipo** (app o Airtable): su fila con `Nombre`, `Email` y `Activo` marcado. El rol (Administrador = todo; Equipo = solo Tareas y Calendario) se elige en su ficha.
 2. En la app → Equipo → su ficha → **Acceso a la app** → *Generar código de invitación* → *Enviar invitación* (lo manda por WhatsApp/Telegram).
 3. La persona abre el enlace (`/registro`), escribe su email, el código y crea su contraseña. El código solo vale una vez.
 
