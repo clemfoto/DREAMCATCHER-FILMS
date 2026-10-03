@@ -9,20 +9,20 @@ const TAREAS = [
   { tarea: "webhook", texto: "Conectar el bot", ayuda: "Hazlo una vez tras configurar el bot (o si cambias de dominio)." },
   {
     tarea: "frecuente",
-    texto: "Enviar avisos de clientes",
-    ayuda: `Nuevo cliente → aviso al grupo, invitaciones al team y entrega creada ${dias(A.diasEntrega)} después del evento. Se hace solo cada 10 min.`,
+    texto: "Enviar avisos de clientes y leads",
+    ayuda: `Nuevo cliente → aviso al grupo, invitaciones al team y entrega ${dias(A.diasEntrega)} después del evento. Leads → aviso del 1er contacto al entrar y de cada contacto siguiente (2º, 3º, 4º) ${dias(A.diasEntreContactos)} después del anterior (de ${A.horarioAvisos.desde}:00 a ${A.horarioAvisos.hasta}:00). Se hace solo cada 10 min.`,
   },
   {
     tarea: "diaria",
-    texto: "Enviar recordatorios de hoy",
-    ayuda: `Recordatorio de entrega ${dias(A.diasRecordatorioEntrega)} después del evento y seguimiento de leads (2º, 3º y 4º contacto, uno cada ${dias(A.diasEntreContactos)}). Se hace solo cada día a las 9:00.`,
+    texto: "Enviar recordatorios de entrega",
+    ayuda: `Recordatorio al responsable ${dias(A.diasRecordatorioEntrega)} después del evento. Se hace solo cada día a las 9:00.`,
   },
   {
     tarea: "informe",
     texto: "Enviar informe contable",
-    ayuda: `Mes en curso hasta hoy. Se envía solo cada ${dias(A.diasInformeContable)} a las 9:00.`,
+    ayuda: `Por cobrar, balances vencidos y próximos, cobros y gastos recientes y gastos por aprobar. Se envía solo cada ${dias(A.diasInformeContable)} a las 9:00.`,
   },
-  { tarea: "mensual", texto: "Enviar cierre del mes pasado", ayuda: "Se envía solo por Telegram el día 1 de cada mes." },
+  { tarea: "mensual", texto: "Enviar cierre del mes pasado", ayuda: "Ingresos, gastos y resultado del mes. Se envía solo el día 1 de cada mes." },
 ];
 
 export default function PanelAutomatizaciones() {

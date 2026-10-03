@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getUsuario } from "@/lib/auth";
 import { esAdmin } from "@/lib/esquema";
 import {
+  informeContable,
   informeMensual,
-  mesActual,
   tocaInformeContable,
   procesarClientes,
   recordatoriosEntrega,
@@ -35,15 +35,15 @@ async function manejar(req: NextRequest) {
   try {
     switch (tarea) {
       case "frecuente":
-        log.push(...(await procesarClientes(base)));
+        log.push(...(await procesarClientes(base)), ...(await recordatoriosLeads(base, !porCron)));
         break;
       case "diaria":
-        log.push(...(await recordatoriosEntrega()), ...(await recordatoriosLeads(base)));
+        log.push(...(await recordatoriosEntrega()));
         // Informe contable cada 2 días (desde la tarea programada; el botón "informe" lo fuerza).
-        if (porCron && tocaInformeContable()) log.push(...(await informeMensual(mesActual())));
+        if (porCron && tocaInformeContable()) log.push(...(await informeContable()));
         break;
       case "informe":
-        log.push(...(await informeMensual(mesActual())));
+        log.push(...(await informeContable()));
         break;
       case "mensual":
         log.push(...(await informeMensual(req.nextUrl.searchParams.get("mes") ?? undefined)));

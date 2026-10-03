@@ -102,8 +102,8 @@ Viven en la app (`lib/automatizaciones.ts`, `lib/telegram.ts`), no en Make. Las 
 - Nuevo cliente → aviso al grupo de administradores y entrega creada 3 días después del evento (`diasEntrega`); si cambia la fecha del evento, la entrega pendiente se mueve.
 - Team members → invitación por Telegram con botón (o respuesta "confirmo"); se guarda en `Clientes.Confirmados` y se avisa a administradores.
 - Entregas → recordatorio al responsable 1 día después del evento (`diasRecordatorioEntrega`; a administradores si no hay responsable con Telegram).
-- Leads → recordatorio a administradores para el 2º, 3º y 4º contacto, uno cada día (`diasEntreContactos`).
-- Informe contable por Telegram al grupo de administradores cada 2 días (mes en curso, `diasInformeContable`) y cierre del mes anterior el día 1.
+- Leads → aviso a administradores del 1er contacto en cuanto entra el lead y de cada contacto siguiente (2º, 3º, 4º) 1 día después de apuntar el anterior (`diasEntreContactos`, campo `Último contacto` de Airtable), de 8:00 a 21:00.
+- Informe contable cada 2 días (`diasInformeContable`: por cobrar, balances vencidos y próximos, cobros y gastos recientes, gastos por aprobar) y cierre del mes anterior el día 1, por Telegram al grupo de administradores.
 - Campos internos ocultos en la app: `CAMPOS_OCULTOS`.
 
 Trabajar fase por fase, con una versión desplegada y probable en el móvil al final de cada una.

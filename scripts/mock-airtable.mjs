@@ -83,6 +83,7 @@ const esquema = {
     ["fldLeaC30000000", "3er Contacto", "multipleRecordLinks", link(T.equipo, "fldEquL300000000")],
     ["fldLeaC40000000", "4to Contacto", "multipleRecordLinks", link(T.equipo, "fldEquL400000000")],
     ["fldLeaRecord0000", "Recordatorios enviados", "number", { precision: 0 }],
+    ["fldLeaUltimo0000", "Último contacto", "dateTime"],
   ]],
   [T.conta]: ["Contabilidad", [
     ["fldConNombre0000", "NOMBRE DEL CLIENTE", "formula", { result: { type: "singleLineText" } }],

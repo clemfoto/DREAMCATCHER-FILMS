@@ -282,10 +282,17 @@ export const AUTOMATIZACIONES = {
   diasEntrega: 3,
   /** El recordatorio de entrega se envía N días después del evento (tarea diaria de las 9:00). */
   diasRecordatorioEntrega: 1,
-  /** Días entre cada contacto de un lead: 2º, 3º y 4º contacto (desde que entra el lead). */
+  /**
+   * Seguimiento de leads: aviso del 1er contacto en cuanto entra el lead y de cada contacto
+   * siguiente (2º, 3º y 4º) N días después de apuntar el anterior.
+   */
   diasEntreContactos: 1,
-  /** El informe contable (mes en curso) se envía cada N días; el día 1 llega el cierre del mes anterior. */
+  /** Horario (hora de México) en que se mandan los avisos de leads. */
+  horarioAvisos: { desde: 8, hasta: 21 },
+  /** Informe contable (estado de cobros y gastos) cada N días; el día 1 llega además el cierre del mes. */
   diasInformeContable: 2,
+  /** El informe contable lista los balances que vencen en estos próximos días. */
+  diasProximosBalances: 14,
   /** Estados de cliente que no generan avisos ni invitaciones. */
   estadosClienteIgnorados: ["Cancelado"],
   /** Estados de entrega que cuentan como entregada. */
@@ -305,6 +312,8 @@ export const AUTOMATIZACIONES = {
     clienteEntrega: "Entrega",
     entregaRecordatorio: "Recordatorio enviado",
     leadRecordatorios: "Recordatorios enviados",
+    /** Fecha de la última modificación de los contactos (campo "última modificación" de Airtable). */
+    leadUltimoContacto: "Último contacto",
     contaDeposito: "DEPOSITO",
     contaFechaDeposito: "Fecha Depósito",
     contaTotal: "Monto Total",

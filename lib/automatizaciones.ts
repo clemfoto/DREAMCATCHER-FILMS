@@ -272,51 +272,82 @@ export async function recordatoriosEntrega(): Promise<string[]> {
 }
 
 /* ------------------------------------------------------------------ */
-/* 4. Recordatorios de contacto de leads (2º, 3º y 4º contacto)         */
+/* 4. Seguimiento de leads: 1º, 2º, 3º y 4º contacto                     */
 /* ------------------------------------------------------------------ */
 
-export async function recordatoriosLeads(base: string): Promise<string[]> {
+const ORDINAL = ["1º", "2º", "3º", "4º"];
+
+/** Hora actual (0–23) en la zona del negocio. */
+const horaLocal = () =>
+  Number(new Intl.DateTimeFormat("en-GB", { timeZone: ZONA_HORARIA, hour: "numeric", hourCycle: "h23" }).format(new Date()));
+
+/**
+ * Cada lead abierto avanza paso a paso:
+ *  - 1º contacto: aviso en cuanto entra el lead.
+ *  - 2º, 3º y 4º: aviso N días (diasEntreContactos) después de apuntar el contacto anterior
+ *    (Airtable guarda la hora en "Último contacto").
+ * Un aviso por paso ("Recordatorios enviados" = último contacto avisado) y solo en horario de día.
+ */
+export async function recordatoriosLeads(base: string, forzar = false): Promise<string[]> {
   const log: string[] = [];
+  const hora = horaLocal();
+  if (!forzar && (hora < A.horarioAvisos.desde || hora >= A.horarioAvisos.hasta)) return log;
+
   const [leads, personas] = await Promise.all([getRegistrosSinCache(TABLAS.leads), equipo()]);
   const contactos = (gLead.contactos as string[]) ?? [];
   const principal = campoPrincipal((await getEsquema()).find((t) => t.id === TABLAS.leads)!);
+  const ahora = Date.now();
 
   for (const r of leads) {
     const f = r.fields;
     if (A.estadosLeadCerrados.includes(texto(f[str(gLead.estado)]))) continue;
-    const dias = -(diasHasta(fechaLocal(r.createdTime)) ?? 0);
-    const paso = Math.min(contactos.length - 1, Math.floor(dias / A.diasEntreContactos)); // 1 = toca el 2º contacto
-    const enviados = aNumero(f[C.leadRecordatorios]);
-    if (paso < 1 || paso <= enviados) continue;
+    if (ids(f[str(gLead.clienteRelacionado)]).length) continue; // ya es cliente
+
+    // Contactos hechos en orden (el primero vacío marca el siguiente paso).
+    const primeroVacio = contactos.findIndex((c) => ids(f[c]).length === 0);
+    const hechos = primeroVacio === -1 ? contactos.length : primeroVacio;
+    if (hechos >= contactos.length) continue;
+    const siguiente = hechos + 1; // 1..4
+    if (aNumero(f[C.leadRecordatorios]) >= siguiente) continue;
+
+    const desde = hechos === 0 ? r.createdTime : String(f[C.leadUltimoContacto] ?? r.createdTime);
+    const espera = hechos === 0 ? 0 : A.diasEntreContactos * 86_400_000;
+    if (ahora - Date.parse(desde) < espera) continue;
 
     const nombre = textoPrincipal(f[principal.name]) || "Lead sin nombre";
-    const siguiente = contactos[paso];
-    if (ids(f[siguiente]).length === 0) {
-      const hechos = contactos
-        .slice(0, paso)
-        .map((c, i) => `${i + 1}º: ${ids(f[c]).length ? h(nombres(ids(f[c]), personas)) : "—"}`)
-        .join(" · ");
-      await enviarAdmins(
-        [
-          `📞 <b>Toca el ${paso + 1}º contacto</b> con <b>${h(nombre)}</b>`,
-          `Ingresó hace ${dias} días (${h(fecha(fechaLocal(r.createdTime)))}).`,
-          f[str(gLead.servicio)] ? `🎥 ${h(texto(f[str(gLead.servicio)]))}` : "",
-          hechos,
-          `<a href="${base}/t/leads/${r.id}">Abrir lead</a>`,
-        ]
-          .filter(Boolean)
-          .join("\n"),
-      );
-      log.push(`Recordatorio ${paso + 1}º contacto: ${nombre}`);
-    }
-    await actualizarRegistro(TABLAS.leads, r.id, { [C.leadRecordatorios]: paso });
+    const pasos = contactos
+      .map((c, i) => {
+        const quien = ids(f[c]);
+        return quien.length ? `✅ ${ORDINAL[i]}: ${h(nombres(quien, personas))}` : `${i === hechos ? "👉" : "⬜"} ${ORDINAL[i]}`;
+      })
+      .join("\n");
+    const ok = await enviarAdmins(
+      [
+        hechos === 0
+          ? `🆕 <b>Nuevo lead: ${h(nombre)}</b>\nToca el <b>1er contacto</b>.`
+          : `📞 <b>${h(nombre)}</b>: toca el <b>${ORDINAL[hechos]} contacto</b>`,
+        f[str(gLead.fecha)] ? `📅 Evento: ${h(fecha(f[str(gLead.fecha)]))}` : "",
+        f[str(gLead.servicio)] ? `🎥 ${h(texto(f[str(gLead.servicio)]))}` : "",
+        hechos > 0 ? `Último contacto: ${h(fecha(desde, true))}` : "",
+        ``,
+        pasos,
+        ``,
+        `Al hacerlo, apúntalo en el lead: ${ORDINAL[hechos]} contacto → quién lo hizo.`,
+        `<a href="${base}/t/leads/${r.id}">Abrir lead</a>`,
+      ]
+        .filter((x, i, arr) => x !== "" || (i > 0 && arr[i - 1] !== ""))
+        .join("\n"),
+    );
+    if (!ok) continue;
+    await actualizarRegistro(TABLAS.leads, r.id, { [C.leadRecordatorios]: siguiente });
+    log.push(`Lead ${nombre}: aviso del ${ORDINAL[hechos]} contacto`);
   }
   if (log.length) invalidar(TABLAS.leads);
   return log;
 }
 
 /* ------------------------------------------------------------------ */
-/* 5. Informe contable: cada 2 días (mes en curso) y cierre el día 1    */
+/* 5. Informe contable cada 2 días y cierre del mes el día 1            */
 /* ------------------------------------------------------------------ */
 
 /** Mes actual, "YYYY-MM". */
@@ -339,9 +370,77 @@ export function tocaInformeContable(hoy = hoyISO()): boolean {
 }
 
 /**
- * Informe contable por Telegram al grupo de administradores.
- * Sin parámetros: cierre del mes anterior (día 1). Con el mes en curso: avance hasta hoy (cada 2 días).
+ * Informe contable de seguimiento (cada 2 días): no es un cierre, sino el estado de hoy.
+ * Qué falta cobrar, qué balances vencieron o vencen pronto, qué entró y qué se gastó
+ * desde el último informe y qué gastos esperan aprobación.
  */
+export async function informeContable(): Promise<string[]> {
+  const [conta, gastos, esquema, personas] = await Promise.all([
+    getRegistrosSinCache(TABLAS.contabilidad),
+    getRegistrosSinCache(TABLAS.gastos),
+    getEsquema(),
+    equipo(),
+  ]);
+  const hoy = hoyISO();
+  const desde = sumarDias(hoy, -A.diasInformeContable + 1); // periodo desde el último informe (incluye hoy)
+  const hasta = sumarDias(hoy, A.diasProximosBalances);
+  const $ = (n: number) => dinero(n) || "$0";
+  const entre = (v: unknown, a: string, b: string) => typeof v === "string" && v.slice(0, 10) >= a && v.slice(0, 10) <= b;
+  const tContab = esquema.find((t) => t.id === TABLAS.contabilidad);
+  const nombreConta = (r: AirRecord) =>
+    (tContab ? textoPrincipal(r.fields[campoPrincipal(tContab).name]) : "") || "Sin cliente";
+
+  const conSaldo = conta
+    .map((r) => ({ r, saldo: Math.max(0, aNumero(r.fields[C.contaPendiente])), fb: String(r.fields[C.contaFechaBalance] ?? "") }))
+    .filter((x) => x.saldo > 0);
+  const pendiente = conSaldo.reduce((s, x) => s + x.saldo, 0);
+  const vencidos = conSaldo.filter((x) => x.fb && x.fb < hoy).sort((a, b) => a.fb.localeCompare(b.fb));
+  const proximos = conSaldo.filter((x) => x.fb && x.fb >= hoy && x.fb <= hasta).sort((a, b) => a.fb.localeCompare(b.fb));
+
+  const depositos = conta.filter((r) => entre(r.fields[C.contaFechaDeposito], desde, hoy));
+  const cobrado = depositos.reduce((s, r) => s + aNumero(r.fields[C.contaDeposito]), 0);
+
+  const vivos = gastos.filter((r) => texto(r.fields[str(gGas.aprobacion)]) !== DECISIONES.rechazado);
+  const gastosRecientes = vivos.filter((r) => entre(r.fields[str(gGas.fecha)], desde, hoy));
+  const gastado = gastosRecientes.reduce((s, r) => s + aNumero(r.fields[str(gGas.monto)]), 0);
+  const porAprobar = gastos.filter((r) => texto(r.fields[str(gGas.aprobacion)]) === DECISIONES.aprobacionPendiente);
+
+  const mes = mesActual();
+  const ingresosMes = conta
+    .filter((r) => entre(r.fields[C.contaFechaDeposito], `${mes}-01`, hoy))
+    .reduce((s, r) => s + aNumero(r.fields[C.contaDeposito]), 0);
+  const gastosMes = vivos
+    .filter((r) => entre(r.fields[str(gGas.fecha)], `${mes}-01`, hoy))
+    .reduce((s, r) => s + aNumero(r.fields[str(gGas.monto)]), 0);
+
+  const linea = (x: { r: AirRecord; saldo: number; fb: string }) => `  ${nombreConta(x.r)} · ${$(x.saldo)} · ${fecha(x.fb)}`;
+  const gasto = (r: AirRecord) =>
+    `  ${textoPrincipal(r.fields["GASTOS"]) || texto(r.fields[str(gGas.categoria)]) || "Gasto"} · ${$(aNumero(r.fields[str(gGas.monto)]))}` +
+    (ids(r.fields[str(gGas.pagador)]).length ? ` · ${nombres(ids(r.fields[str(gGas.pagador)]), personas)}` : "");
+  const periodo = desde === hoy ? "hoy" : `desde el ${fecha(desde)}`;
+
+  const detalle = [
+    `POR COBRAR ${$(pendiente)} (${conSaldo.length} clientes)`,
+    vencidos.length ? `\n⚠️ Balances vencidos (${vencidos.length})` : "",
+    ...vencidos.map(linea),
+    proximos.length ? `\n📅 Balances en los próximos ${A.diasProximosBalances} días (${proximos.length})` : "",
+    ...proximos.map(linea),
+    `\n💵 Cobrado ${periodo}: ${$(cobrado)}${depositos.length ? ` (${depositos.length} depósitos)` : ""}`,
+    ...depositos.map((r) => `  ${nombreConta(r)} · ${$(aNumero(r.fields[C.contaDeposito]))}`),
+    `\n🧾 Gastado ${periodo}: ${$(gastado)}${gastosRecientes.length ? ` (${gastosRecientes.length})` : ""}`,
+    ...gastosRecientes.map(gasto),
+    porAprobar.length ? `\n⏳ Gastos por aprobar (${porAprobar.length})` : "",
+    ...porAprobar.map(gasto),
+    `\nEn lo que va de ${nombreMes(mes)}: cobrado ${$(ingresosMes)} · gastado ${$(gastosMes)}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const ok = await enviarAdmins(`📊 <b>Informe contable · ${h(fecha(hoy))}</b>\n\n<pre>${h(detalle)}</pre>`);
+  return [ok ? `Informe contable del ${fecha(hoy)} enviado por Telegram.` : "⚠️ No se pudo enviar el informe contable."];
+}
+
+/** Cierre del mes por Telegram al grupo de administradores (tarea programada del día 1). */
 export async function informeMensual(mes = mesAnterior()): Promise<string[]> {
   const [conta, gastos, clientes] = await Promise.all([
     getRegistrosSinCache(TABLAS.contabilidad),
@@ -395,8 +494,7 @@ export async function informeMensual(mes = mesAnterior()): Promise<string[]> {
     `Pendiente de cobro total a hoy: ${$(pendiente)}`,
   ].join("\n");
 
-  const enCurso = hoyISO().startsWith(mes);
-  const titulo = enCurso ? `${nombreMes(mes)} (hasta hoy, ${fecha(hoyISO())})` : nombreMes(mes);
-  const ok = await enviarAdmins(`📊 <b>Informe contable · ${h(titulo)}</b>\n\n<pre>${h(detalle)}</pre>`);
-  return [ok ? `Informe de ${titulo} enviado por Telegram.` : `⚠️ No se pudo enviar el informe de ${titulo}.`];
+  const titulo = nombreMes(mes);
+  const ok = await enviarAdmins(`📊 <b>Cierre del mes · ${h(titulo)}</b>\n\n<pre>${h(detalle)}</pre>`);
+  return [ok ? `Cierre de ${titulo} enviado por Telegram.` : `⚠️ No se pudo enviar el cierre de ${titulo}.`];
 }
