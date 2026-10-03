@@ -1,11 +1,28 @@
 "use client";
 import { useState } from "react";
+import { AUTOMATIZACIONES } from "@/config/galerias";
+
+const A = AUTOMATIZACIONES;
+const dias = (n: number) => (n === 1 ? "1 día" : `${n} días`);
 
 const TAREAS = [
   { tarea: "webhook", texto: "Conectar el bot", ayuda: "Hazlo una vez tras configurar el bot (o si cambias de dominio)." },
-  { tarea: "frecuente", texto: "Enviar avisos de clientes", ayuda: "Nuevos clientes e invitaciones. Se hace solo cada 10 min." },
-  { tarea: "diaria", texto: "Enviar recordatorios de hoy", ayuda: "Entregas y leads. Se hace solo cada día a las 9:00." },
-  { tarea: "mensual", texto: "Enviar informe del mes pasado", ayuda: "Se envía solo por Telegram el día 1 de cada mes." },
+  {
+    tarea: "frecuente",
+    texto: "Enviar avisos de clientes",
+    ayuda: `Nuevo cliente → aviso al grupo, invitaciones al team y entrega creada ${dias(A.diasEntrega)} después del evento. Se hace solo cada 10 min.`,
+  },
+  {
+    tarea: "diaria",
+    texto: "Enviar recordatorios de hoy",
+    ayuda: `Recordatorio de entrega ${dias(A.diasRecordatorioEntrega)} después del evento y seguimiento de leads (2º, 3º y 4º contacto, uno cada ${dias(A.diasEntreContactos)}). Se hace solo cada día a las 9:00.`,
+  },
+  {
+    tarea: "informe",
+    texto: "Enviar informe contable",
+    ayuda: `Mes en curso hasta hoy. Se envía solo cada ${dias(A.diasInformeContable)} a las 9:00.`,
+  },
+  { tarea: "mensual", texto: "Enviar cierre del mes pasado", ayuda: "Se envía solo por Telegram el día 1 de cada mes." },
 ];
 
 export default function PanelAutomatizaciones() {

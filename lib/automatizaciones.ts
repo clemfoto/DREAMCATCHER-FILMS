@@ -71,7 +71,7 @@ const nombres = (lista: string[], personas: Map<string, Persona>) =>
 const nombreCliente = (r: AirRecord) => textoPrincipal(r.fields[str(gCli.nombre)]) || "Sin nombre";
 
 /* ------------------------------------------------------------------ */
-/* 1. Nuevos clientes: aviso a admins, invitaciones y entrega a 9 semanas */
+/* 1. Nuevos clientes: aviso a admins, invitaciones y entrega a 3 días    */
 /* ------------------------------------------------------------------ */
 
 export async function procesarClientes(base: string): Promise<string[]> {
@@ -116,7 +116,7 @@ export async function procesarClientes(base: string): Promise<string[]> {
       if (fechaEvento && ids(f[C.clienteEntrega]).length === 0) {
         await crearRegistro(TABLAS.entrega, {
           [str(gEnt.cliente)]: [r.id],
-          [str(gEnt.fecha)]: sumarDias(fechaEvento, A.semanasEntrega * 7),
+          [str(gEnt.fecha)]: sumarDias(fechaEvento, A.diasEntrega),
           [str(gEnt.status)]: [A.estadoEntregaInicial],
         });
         entregasCreadas = true;
@@ -160,10 +160,10 @@ export async function procesarClientes(base: string): Promise<string[]> {
   return log;
 }
 
-/** Si cambia la fecha del evento, mueve las entregas pendientes a 9 semanas después. */
+/** Si cambia la fecha del evento, mueve las entregas pendientes a N días después (AUTOMATIZACIONES.diasEntrega). */
 export async function moverEntregas(clienteId: string, fechaEvento: string): Promise<void> {
   const entregas = await getRegistrosSinCache(TABLAS.entrega);
-  const nueva = sumarDias(fechaEvento, A.semanasEntrega * 7);
+  const nueva = sumarDias(fechaEvento, A.diasEntrega);
   for (const e of entregas) {
     if (!ids(e.fields[str(gEnt.cliente)]).includes(clienteId)) continue;
     const status = ids(e.fields[str(gEnt.status)]).map(texto);
@@ -217,7 +217,7 @@ export async function pendientesDeConfirmar(persona: Persona): Promise<AirRecord
 export const etiquetaEvento = (r: AirRecord) => `${nombreCliente(r)} · ${fecha(r.fields[str(gCli.fecha)])}`;
 
 /* ------------------------------------------------------------------ */
-/* 3. Recordatorio de entrega una semana antes                          */
+/* 3. Recordatorio de entrega el día después del evento                 */
 /* ------------------------------------------------------------------ */
 
 export async function recordatoriosEntrega(): Promise<string[]> {
@@ -232,13 +232,27 @@ export async function recordatoriosEntrega(): Promise<string[]> {
     if (f[C.entregaRecordatorio] === true) continue;
     const status = ids(f[str(gEnt.status)]).map(texto);
     if (status.some((s) => A.estadosEntregaHechos.includes(s))) continue;
-    const d = diasHasta(f[str(gEnt.fecha)]);
-    if (d == null || d < 0 || d > A.diasAvisoEntrega) continue;
-
     const cliente = clientes.find((c) => ids(f[str(gEnt.cliente)]).includes(c.id));
+    // Toca N días después del evento; sin cliente enlazado, se cuenta hacia atrás desde la entrega.
+    const fechaEvento = cliente ? String(cliente.fields[str(gCli.fecha)] ?? "") : "";
+    const referencia = fechaEvento
+      ? sumarDias(fechaEvento, A.diasRecordatorioEntrega)
+      : typeof f[str(gEnt.fecha)] === "string"
+        ? sumarDias(String(f[str(gEnt.fecha)]), A.diasRecordatorioEntrega - A.diasEntrega)
+        : "";
+    const atraso = -(diasHasta(referencia) ?? 1); // 0 = hoy toca; se recupera hasta 2 días si falló la tarea
+    if (!referencia || atraso < 0 || atraso > 2) continue;
+
     const nombre = cliente ? nombreCliente(cliente) : textoPrincipal(f["NOMBRE DEL CLIENTE"]) || "un cliente";
-    const cuando = d === 0 ? "Hoy" : d === 1 ? "Mañana" : `En ${d} días`;
-    const msg = `⏰ <b>Recordatorio de entrega</b>\n${cuando} tienes que entregar <b>${h(nombre)}</b> (${h(fecha(f[str(gEnt.fecha)]))}).`;
+    const d = diasHasta(f[str(gEnt.fecha)]);
+    const cuando = d == null ? "" : d === 0 ? " (hoy)" : d === 1 ? " (mañana)" : d > 1 ? ` (en ${d} días)` : ` (hace ${-d} días)`;
+    const msg = [
+      `⏰ <b>Recordatorio de entrega: ${h(nombre)}</b>`,
+      fechaEvento ? `🎬 Evento: ${h(fecha(fechaEvento))}` : "",
+      `📦 Entrega: ${h(fecha(f[str(gEnt.fecha)]) || "sin fecha")}${cuando}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     const responsables = ids(f[str(gEnt.responsable)]).map((id) => personas.get(id)).filter(Boolean) as Persona[];
     let enviado = false;
@@ -250,7 +264,7 @@ export async function recordatoriosEntrega(): Promise<string[]> {
     }
     if (enviado) {
       await actualizarRegistro(TABLAS.entrega, e.id, { [C.entregaRecordatorio]: true });
-      log.push(`Recordatorio de entrega: ${nombre} (${cuando.toLowerCase()})`);
+      log.push(`Recordatorio de entrega: ${nombre}`);
     }
   }
   if (log.length) invalidar(TABLAS.entrega);
@@ -258,7 +272,7 @@ export async function recordatoriosEntrega(): Promise<string[]> {
 }
 
 /* ------------------------------------------------------------------ */
-/* 4. Recordatorios de contacto de leads (cada 7 días)                  */
+/* 4. Recordatorios de contacto de leads (2º, 3º y 4º contacto)         */
 /* ------------------------------------------------------------------ */
 
 export async function recordatoriosLeads(base: string): Promise<string[]> {
@@ -302,8 +316,11 @@ export async function recordatoriosLeads(base: string): Promise<string[]> {
 }
 
 /* ------------------------------------------------------------------ */
-/* 5. Informe contable mensual                                          */
+/* 5. Informe contable: cada 2 días (mes en curso) y cierre el día 1    */
 /* ------------------------------------------------------------------ */
+
+/** Mes actual, "YYYY-MM". */
+export const mesActual = () => hoyISO().slice(0, 7);
 
 /** Mes anterior al actual, "YYYY-MM". */
 export function mesAnterior(): string {
@@ -314,7 +331,17 @@ export function mesAnterior(): string {
 const nombreMes = (mes: string) =>
   new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(new Date(`${mes}-15T12:00:00Z`));
 
-/** Informe del mes por Telegram al grupo de administradores (lo lanza la tarea programada del día 1). */
+/** ¿Toca hoy el informe contable? Cada N días (por número de día, estable entre meses), nunca el día 1. */
+export function tocaInformeContable(hoy = hoyISO()): boolean {
+  if (hoy.endsWith("-01")) return false; // el día 1 ya llega el cierre del mes anterior
+  const dia = Math.floor(Date.parse(`${hoy}T12:00:00Z`) / 86_400_000);
+  return dia % A.diasInformeContable === 0;
+}
+
+/**
+ * Informe contable por Telegram al grupo de administradores.
+ * Sin parámetros: cierre del mes anterior (día 1). Con el mes en curso: avance hasta hoy (cada 2 días).
+ */
 export async function informeMensual(mes = mesAnterior()): Promise<string[]> {
   const [conta, gastos, clientes] = await Promise.all([
     getRegistrosSinCache(TABLAS.contabilidad),
@@ -368,6 +395,8 @@ export async function informeMensual(mes = mesAnterior()): Promise<string[]> {
     `Pendiente de cobro total a hoy: ${$(pendiente)}`,
   ].join("\n");
 
-  await enviarAdmins(`📊 <b>Informe contable · ${h(nombreMes(mes))}</b>\n\n<pre>${h(detalle)}</pre>`);
-  return [`Informe de ${mes} enviado por Telegram.`];
+  const enCurso = hoyISO().startsWith(mes);
+  const titulo = enCurso ? `${nombreMes(mes)} (hasta hoy, ${fecha(hoyISO())})` : nombreMes(mes);
+  const ok = await enviarAdmins(`📊 <b>Informe contable · ${h(titulo)}</b>\n\n<pre>${h(detalle)}</pre>`);
+  return [ok ? `Informe de ${titulo} enviado por Telegram.` : `⚠️ No se pudo enviar el informe de ${titulo}.`];
 }

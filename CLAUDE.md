@@ -99,11 +99,11 @@ Navegación móvil: barra inferior con Inicio, Clientes, Tareas, Entrega, Leads 
 
 Viven en la app (`lib/automatizaciones.ts`, `lib/telegram.ts`), no en Make. Las ejecutan tareas programadas de Netlify (`netlify/functions/auto-*.mjs`) que llaman a `/api/automatizaciones`; el bot recibe mensajes en `/api/telegram`. Parámetros en `AUTOMATIZACIONES` de `config/galerias.ts`.
 
-- Nuevo cliente → aviso al grupo de administradores y entrega creada a 9 semanas del evento; si cambia la fecha del evento, la entrega pendiente se mueve.
+- Nuevo cliente → aviso al grupo de administradores y entrega creada 3 días después del evento (`diasEntrega`); si cambia la fecha del evento, la entrega pendiente se mueve.
 - Team members → invitación por Telegram con botón (o respuesta "confirmo"); se guarda en `Clientes.Confirmados` y se avisa a administradores.
-- Entregas → aviso al responsable 7 días antes (o a administradores si no hay responsable con Telegram).
-- Leads → recordatorio a administradores a los 7, 14 y 21 días para el 2º, 3º y 4º contacto.
-- Día 1 de cada mes → informe contable por Telegram al grupo de administradores.
+- Entregas → recordatorio al responsable 1 día después del evento (`diasRecordatorioEntrega`; a administradores si no hay responsable con Telegram).
+- Leads → recordatorio a administradores para el 2º, 3º y 4º contacto, uno cada día (`diasEntreContactos`).
+- Informe contable por Telegram al grupo de administradores cada 2 días (mes en curso, `diasInformeContable`) y cierre del mes anterior el día 1.
 - Campos internos ocultos en la app: `CAMPOS_OCULTOS`.
 
 Trabajar fase por fase, con una versión desplegada y probable en el móvil al final de cada una.

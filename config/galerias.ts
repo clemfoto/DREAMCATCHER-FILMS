@@ -278,12 +278,14 @@ export const DECISIONES = {
 /* ------------------------------------------------------------------ */
 
 export const AUTOMATIZACIONES = {
-  /** La entrega se fija este número de semanas después del evento. */
-  semanasEntrega: 9,
-  /** Días antes de la fecha de entrega en que se avisa al responsable. */
-  diasAvisoEntrega: 7,
-  /** Días entre cada contacto de un lead (2º, 3º y 4º). */
-  diasEntreContactos: 7,
+  /** La entrega se crea con fecha N días después del evento. */
+  diasEntrega: 3,
+  /** El recordatorio de entrega se envía N días después del evento (tarea diaria de las 9:00). */
+  diasRecordatorioEntrega: 1,
+  /** Días entre cada contacto de un lead: 2º, 3º y 4º contacto (desde que entra el lead). */
+  diasEntreContactos: 1,
+  /** El informe contable (mes en curso) se envía cada N días; el día 1 llega el cierre del mes anterior. */
+  diasInformeContable: 2,
   /** Estados de cliente que no generan avisos ni invitaciones. */
   estadosClienteIgnorados: ["Cancelado"],
   /** Estados de entrega que cuentan como entregada. */

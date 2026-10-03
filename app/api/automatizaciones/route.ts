@@ -3,6 +3,8 @@ import { getUsuario } from "@/lib/auth";
 import { esAdmin } from "@/lib/esquema";
 import {
   informeMensual,
+  mesActual,
+  tocaInformeContable,
   procesarClientes,
   recordatoriosEntrega,
   recordatoriosLeads,
@@ -37,6 +39,11 @@ async function manejar(req: NextRequest) {
         break;
       case "diaria":
         log.push(...(await recordatoriosEntrega()), ...(await recordatoriosLeads(base)));
+        // Informe contable cada 2 días (desde la tarea programada; el botón "informe" lo fuerza).
+        if (porCron && tocaInformeContable()) log.push(...(await informeMensual(mesActual())));
+        break;
+      case "informe":
+        log.push(...(await informeMensual(mesActual())));
         break;
       case "mensual":
         log.push(...(await informeMensual(req.nextUrl.searchParams.get("mes") ?? undefined)));
