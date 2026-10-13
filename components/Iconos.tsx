@@ -10,6 +10,7 @@ const P: Record<string, string> = {
   [TABLAS.equipo]: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0",
   inicio: "M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1v-9Z",
   calendario: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
+  coordinador: "M9 4h6v3H9zM8 5.5H6v15h12v-15h-2M9 12l2 2 4-4M9 17h6",
   mas: "M5 12h.01M12 12h.01M19 12h.01",
   tabla: "M4 5h16v14H4zM4 10h16M10 10v9",
 };

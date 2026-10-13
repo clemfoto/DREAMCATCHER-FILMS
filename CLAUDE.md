@@ -53,7 +53,7 @@ Reglas:
 ## Permisos
 
 - **Administrador:** acceso a todo, incluidas Contabilidad, Gastos y Equipo.
-- **Coordinador** (organiza el personal de cada evento): Clientes con solo nombre, fecha, servicio, venue, estado, team, confirmados, archivos adjuntos y solicitudes especiales (`COORDINADOR` en `config/galerias.ts`); solo puede cambiar el team y los archivos, no crea ni borra clientes. Además Tareas y Calendario. Nunca precios, pagos, Entrega, Leads, Contabilidad, Gastos, Equipo ni Inicio. Recibe por Telegram cada cliente nuevo (sin precio) y las confirmaciones del team.
+- **Coordinador** (organiza el personal de cada evento): su sección **Coordinador** (`/coordinador`), más Tareas y Calendario. No ve la sección Clientes, ni precios, pagos, Inicio, Entrega, Leads, Contabilidad, Gastos o Equipo. Recibe por Telegram cada cliente nuevo (sin precio) y las confirmaciones del team.
 - **Equipo:** solo Tareas y Calendario (en el calendario ve eventos, entregas y tareas, sin poder abrir Clientes ni Entrega). En sus tareas ve nombre, fecha, venue y servicio del cliente, nunca precios ni otros datos (`resumenClientes`). Sin panel de inicio, Clientes, Entrega, Leads, Contabilidad, Gastos ni Equipo.
 - El rol se elige en la ficha de la persona (Equipo → "Rol y acceso a la app").
 - Los permisos se comprueban en el servidor, no solo ocultando botones.
@@ -70,6 +70,7 @@ Motor genérico: cualquier tabla de la base se muestra como lista de tarjetas, c
 - **Gastos** (solo administrador): lista con categoría, fecha, quién pagó y monto; botón destacado "Foto del ticket" que sube la imagen a Comprobante.
 - **Equipo** (solo administrador): personas, rol y número de eventos. La ficha oculta los enlaces inversos y el Telegram Chat ID (`ocultar` en la configuración de Equipo).
 
+- **Coordinador** (`/coordinador`, rol Coordinador y administradores): los clientes con solo nombre, fecha, servicio, venue, estado, team, confirmados, archivos y solicitudes (`COORDINADOR` en `config/galerias.ts`). Desde ahí se elige el team y se suben archivos (no se crean ni borran clientes); al guardar salen las invitaciones por Telegram. Panel "Team del evento" con quién confirmó, también en la ficha de Clientes.
 - **Inicio** (`/inicio`): "Lo que necesita decisión": entregas "En revisión" (visto bueno → "Aprobada"), gastos por encima de `DECISIONES.limiteGasto` (los aprueba un socio distinto de quien pagó), leads sin 1er contacto en 24 h, pagos vencidos (saldo de Contabilidad con fecha de balance pasada hace más de 7 días), clientes próximos sin team y fechas duplicadas. Más "Tus próximos eventos" y "Tus tareas".
 - **Calendario** (`/calendario`): mes con eventos, leads, entregas, vencimientos de tareas y cobros de balance (admin); enlace `webcal://…/api/calendario/<token>.ics` personal para suscribirse.
 

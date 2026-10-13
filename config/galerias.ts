@@ -42,13 +42,17 @@ export const EQUIPO = {
 export const TABLAS_ROL_EQUIPO: string[] = [TABLAS.tareas];
 
 /**
- * Rol "Coordinador" (p. ej. quien organiza el personal de cada evento): ve los clientes sin
- * precios ni pagos y elige el team. Además tiene Tareas y Calendario, como el rol Equipo.
- * Sin Inicio, Entrega, Leads, Contabilidad, Gastos ni Equipo.
+ * Sección "Coordinador" (/coordinador): los clientes sin precios ni pagos, para organizar el
+ * personal de cada evento. La usan el rol Coordinador (p. ej. Ricardo) y los administradores,
+ * que así revisan su trabajo. El rol Coordinador tiene además Tareas y Calendario, como el rol
+ * Equipo; no ve la sección Clientes, ni Inicio, Entrega, Leads, Contabilidad, Gastos o Equipo.
  */
 export const COORDINADOR = {
-  tablas: [TABLAS.clientes, TABLAS.tareas] as string[],
-  /** Campos de Clientes que ve (el resto, como Precio o Moneda, no le llega nunca). */
+  ruta: "/coordinador",
+  titulo: "Coordinador",
+  /** Tablas que el rol Coordinador abre además de su sección. */
+  tablas: [TABLAS.tareas] as string[],
+  /** Campos de Clientes que muestra la sección (el resto, como Precio o Moneda, no llega nunca). */
   camposClientes: [
     "Nombre del Cliente",
     "Fecha del Evento",
@@ -61,7 +65,7 @@ export const COORDINADOR = {
     "Solicitudes Especiales",
     "Tareas",
   ],
-  /** Los únicos campos de Clientes que puede cambiar. No crea ni borra clientes. */
+  /** Los únicos campos que se cambian desde la sección. No crea ni borra clientes. */
   editablesClientes: ["Team Members", "Archivos Adjuntos"],
 };
 

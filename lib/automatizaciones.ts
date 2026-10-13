@@ -12,7 +12,7 @@ import { campoPrincipal, textoPrincipal } from "@/lib/esquema";
 import { diasHasta, fecha, hoyISO, moneda, texto } from "@/lib/formato";
 import { aNumero } from "@/lib/lista";
 import { enviar, enviarAdmins, h } from "@/lib/telegram";
-import { AUTOMATIZACIONES as A, DECISIONES, EQUIPO, GALERIAS, TABLAS, ZONA_HORARIA } from "@/config/galerias";
+import { AUTOMATIZACIONES as A, COORDINADOR, DECISIONES, EQUIPO, GALERIAS, TABLAS, ZONA_HORARIA } from "@/config/galerias";
 
 /*
  * Automatizaciones. Se ejecutan desde /api/automatizaciones (tareas programadas de Netlify)
@@ -118,7 +118,7 @@ export async function procesarClientes(base: string): Promise<string[]> {
           `👥 ${team.length ? h(nombres(team, personas)) : "Sin team todavía"}`,
           f[C.clienteSolicitudes] ? `📝 ${h(texto(f[C.clienteSolicitudes]))}` : "",
           `\n${team.length ? "Revisa el team del evento." : "Elige el team del evento en la app."}`,
-          `<a href="${base}/t/clientes/${r.id}">Abrir evento</a>`,
+          `<a href="${base}${COORDINADOR.ruta}/${r.id}">Abrir evento</a>`,
         ]
           .filter(Boolean)
           .join("\n"),

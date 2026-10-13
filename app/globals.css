@@ -1787,3 +1787,41 @@ textarea.input {
 .tarea-evento {
   font-size: 13px;
 }
+
+/* Team del evento: quién confirmó (sección Coordinador y ficha de Clientes) */
+.confirmacion {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.confirmacion li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.confirmacion-nombre {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+.confirmacion-estado {
+  font-size: 14px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.confirmacion-estado.ok {
+  background: #e3eedf;
+  color: #2f5226;
+}
+.confirmacion-estado.espera {
+  background: #fbebd9;
+  color: #7a3f0c;
+}
+.confirmacion-estado.sin {
+  background: #eef1f2;
+  color: #687175;
+}

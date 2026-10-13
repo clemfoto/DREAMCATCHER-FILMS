@@ -3,7 +3,7 @@ import { forbidden, notFound } from "next/navigation";
 import { getEsquema, type Field, type Table } from "@/lib/airtable";
 import { requireUsuario, type Usuario } from "@/lib/auth";
 import { EQUIPO, GALERIAS, TABLAS, type Galeria } from "@/config/galerias";
-import { camposVisibles, nombresDe, nombresEnlazados, puedeVerTabla, resumenClientes, rutaTabla, tablaPorSlug, type ResumenCliente } from "@/lib/esquema";
+import { camposVisibles, nombresDe, nombresEnlazados, puedeVerTabla, resumenClientes, rutasVisibles, tablaPorSlug, type ResumenCliente } from "@/lib/esquema";
 
 /** Lo que necesitan los componentes para pintar enlaces entre tablas. */
 export type Enlaces = {
@@ -19,6 +19,8 @@ export type Contexto = {
   campos: Field[];
   enlaces: Enlaces;
   esquema: Table[];
+  /** Ruta base de las fichas, si no es la de la tabla (la sección Coordinador usa /coordinador). */
+  base?: string;
   /** Nombre, fecha, venue y servicio de los clientes (para Tareas, también para el rol Equipo). */
   clientes?: Map<string, ResumenCliente>;
 };
@@ -30,8 +32,7 @@ export async function contextoTabla(slugTabla: string): Promise<Contexto> {
   if (!t) notFound();
   if (!puedeVerTabla(u, t.id)) forbidden();
   const esquema = await getEsquema();
-  const rutas: Record<string, string> = {};
-  for (const x of esquema) if (puedeVerTabla(u, x.id)) rutas[x.id] = rutaTabla(x);
+  const rutas = rutasVisibles(u, esquema);
   return {
     u,
     t,
@@ -52,8 +53,7 @@ export function cfg(ctx: Contexto, clave: string): Field | undefined {
 /** Enlaces para páginas que mezclan tablas (inicio, calendario): nombres de Equipo y Clientes y rutas visibles. */
 export async function enlacesGlobales(u: Usuario): Promise<Enlaces> {
   const esquema = await getEsquema();
-  const rutas: Record<string, string> = {};
-  for (const x of esquema) if (puedeVerTabla(u, x.id)) rutas[x.id] = rutaTabla(x);
+  const rutas = rutasVisibles(u, esquema);
   const [equipo, clientes] = await Promise.all([nombresDe(EQUIPO.tabla), nombresDe(TABLAS.clientes)]);
   return { nombres: { [EQUIPO.tabla]: equipo, [TABLAS.clientes]: clientes }, rutas };
 }

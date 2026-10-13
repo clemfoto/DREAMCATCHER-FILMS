@@ -2,9 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { revalidateTag } from "next/cache";
 import { crearRegistro, subirAdjunto, tagTabla } from "@/lib/airtable";
 import { getUsuario } from "@/lib/auth";
-import { campo, campoEditable, puedeVerTabla, rutaTabla, tablaPorId } from "@/lib/esquema";
+import { campo, campoEditable, editableCoordinacion, puedeCoordinar, puedeVerTabla, rutaTabla, tablaPorId } from "@/lib/esquema";
 import { hoyISO } from "@/lib/formato";
-import { GALERIAS, TABLAS } from "@/config/galerias";
+import { COORDINADOR, GALERIAS, TABLAS } from "@/config/galerias";
 
 const MAX_BYTES = 5 * 1024 * 1024; // límite de la API de subida de Airtable
 
@@ -18,10 +18,13 @@ export async function POST(req: NextRequest) {
 
   const form = await req.formData();
   const t = await tablaPorId(String(form.get("tabla") ?? ""));
-  if (!t || !puedeVerTabla(u, t.id)) return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  if (!t) return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   const f = t.fields.find((x) => x.id === form.get("campo"));
-  if (!f || f.type !== "multipleAttachments" || !campoEditable(u, f, t)) {
-    return NextResponse.json({ error: "Campo no válido" }, { status: 400 });
+  if (!f || f.type !== "multipleAttachments") return NextResponse.json({ error: "Campo no válido" }, { status: 400 });
+  // Sección Coordinador: el coordinador sube archivos a un evento existente aunque no vea Clientes.
+  const porCoordinacion = t.id === TABLAS.clientes && puedeCoordinar(u) && editableCoordinacion(f) && Boolean(form.get("registro"));
+  if (!porCoordinacion && !(puedeVerTabla(u, t.id) && campoEditable(u, f, t))) {
+    return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
   const archivo = form.get("archivo");
   if (!(archivo instanceof File) || archivo.size === 0) {
@@ -53,5 +56,6 @@ export async function POST(req: NextRequest) {
 
   revalidateTag(tagTabla(t.id), { expire: 0 });
   for (const x of t.fields) if (x.options?.linkedTableId) revalidateTag(tagTabla(x.options.linkedTableId), { expire: 0 });
-  return NextResponse.json({ registro, url: `${rutaTabla(t)}/${registro}` });
+  const base = puedeVerTabla(u, t.id) ? rutaTabla(t) : COORDINADOR.ruta;
+  return NextResponse.json({ registro, url: `${base}/${registro}` });
 }

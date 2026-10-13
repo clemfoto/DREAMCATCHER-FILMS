@@ -15,7 +15,7 @@ import {
 } from "@/lib/airtable";
 import { requireUsuario, type Usuario } from "@/lib/auth";
 import { campo, campoEditable, esAdmin, puedeCrear, puedeVerTabla, rutaTabla, tablaPorId } from "@/lib/esquema";
-import { localAIso } from "@/lib/formato";
+import { leerCampo } from "@/lib/leer-campo";
 import { moverEntregas, procesarClientes } from "@/lib/automatizaciones";
 import { telegramConfigurado } from "@/lib/telegram";
 import { DECISIONES, EQUIPO, GALERIAS, TABLAS } from "@/config/galerias";
@@ -50,38 +50,6 @@ async function tablaEditable(tableId: string): Promise<{ u: Usuario; t: Table }>
 function refrescar(t: Table) {
   updateTag(tagTabla(t.id));
   for (const f of t.fields) if (f.options?.linkedTableId) updateTag(tagTabla(f.options.linkedTableId));
-}
-
-const TEXTO = new Set(["singleLineText", "email", "url", "phoneNumber", "multilineText", "richText"]);
-const NUMERO = new Set(["number", "currency", "percent", "rating", "duration"]);
-
-/** Convierte lo que envía el formulario al formato que espera Airtable, según el tipo del campo. */
-function leerCampo(f: Field, form: FormData): unknown {
-  const clave = `f:${f.id}`;
-  const v = String(form.get(clave) ?? "").trim();
-  if (TEXTO.has(f.type)) return v || null;
-  if (NUMERO.has(f.type)) {
-    if (!v) return null;
-    const n = Number(v.replace(",", "."));
-    if (isNaN(n)) throw new Error(`"${f.name}" debe ser un número.`);
-    return f.type === "percent" ? n / 100 : n;
-  }
-  switch (f.type) {
-    case "checkbox":
-      return form.get(clave) === "on";
-    case "date":
-      return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
-    case "dateTime":
-      return v ? localAIso(v) : null;
-    case "singleSelect":
-      return v || null;
-    case "multipleSelects":
-      return form.getAll(clave).map(String).filter(Boolean);
-    case "multipleRecordLinks":
-      return form.getAll(clave).map(String).filter((id) => /^rec[A-Za-z0-9]{14}$/.test(id));
-    default:
-      return undefined;
-  }
 }
 
 export async function guardarRegistro(

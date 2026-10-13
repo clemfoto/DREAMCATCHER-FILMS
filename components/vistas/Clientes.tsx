@@ -46,7 +46,7 @@ function TarjetaCliente({ r, ctx }: { r: AirRecord; ctx: Contexto }) {
   const precio = moneda(val(r, fPrecio), fPrecio);
   const f = fecha(val(r, cfg(ctx, "fecha")));
   return (
-    <Link href={`${rutaTabla(ctx.t)}/${r.id}`} className="tarjeta tarjeta-link">
+    <Link href={`${ctx.base ?? rutaTabla(ctx.t)}/${r.id}`} className="tarjeta tarjeta-link">
       <div className="tarjeta-fila">
         <h3 className="tarjeta-titulo">{textoPrincipal(r.fields[principal.name]) || "Sin nombre"}</h3>
         {estado && <Chip nombre={estado} />}

@@ -1,7 +1,7 @@
 import "server-only";
 import { getEsquema, getRegistros, type AirRecord } from "@/lib/airtable";
 import type { Usuario } from "@/lib/auth";
-import { esAdmin, nombresDe, puedeVerTabla, rutaTabla } from "@/lib/esquema";
+import { esAdmin, nombresDe, rutasVisibles } from "@/lib/esquema";
 import { dinero, texto } from "@/lib/formato";
 import { aNumero } from "@/lib/lista";
 import { firmaCorta } from "@/lib/token";
@@ -39,10 +39,8 @@ export async function eventosCalendario(u: Usuario): Promise<EventoCal[]> {
   const visibles: string[] = esAdmin(u) ? Object.values(TABLAS) : [TABLAS.clientes, TABLAS.entrega, TABLAS.tareas];
   const leer = async (id: string) =>
     visibles.includes(id) && esquema.some((t) => t.id === id) ? getRegistros(id) : ([] as AirRecord[]);
-  const ruta = (id: string, rec: string) => {
-    const t = puedeVerTabla(u, id) ? esquema.find((x) => x.id === id) : undefined;
-    return t ? `${rutaTabla(t)}/${rec}` : undefined;
-  };
+  const rutas = rutasVisibles(u, esquema);
+  const ruta = (id: string, rec: string) => (rutas[id] ? `${rutas[id]}/${rec}` : undefined);
   const [clientes, leads, entregas, tareas, conta, nombresCliente, nombresEquipo] = await Promise.all([
     leer(TABLAS.clientes),
     leer(TABLAS.leads),

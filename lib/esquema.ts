@@ -48,16 +48,31 @@ export function puedeVerTabla(u: Usuario, tableId: string): boolean {
   return esAdmin(u) || TABLAS_ROL_EQUIPO.includes(tableId) || (esCoordinador(u) && COORDINADOR.tablas.includes(tableId));
 }
 
-/** El coordinador solo edita el team y los archivos de un cliente existente; no crea clientes. */
-export function puedeCrear(u: Usuario, tableId: string): boolean {
-  return puedeVerTabla(u, tableId) && !(esCoordinador(u) && tableId === TABLAS.clientes);
-}
+export const puedeCrear = (u: Usuario, tableId: string) => puedeVerTabla(u, tableId);
 
 /** Campo que el usuario puede cambiar desde un formulario o subiendo un archivo. */
 export function campoEditable(u: Usuario, f: Field, t: Table): boolean {
-  if (!campoVisible(u, f, t) || esSoloLectura(f)) return false;
-  if (esCoordinador(u) && t.id === TABLAS.clientes) return COORDINADOR.editablesClientes.includes(f.name);
-  return true;
+  return campoVisible(u, f, t) && !esSoloLectura(f);
+}
+
+/* ---------- Sección Coordinador ---------- */
+
+/** La sección Coordinador la usan el rol Coordinador y los administradores. */
+export const puedeCoordinar = (u: Usuario) => esAdmin(u) || esCoordinador(u);
+
+/** Campos de Clientes que muestra la sección (sin precios, pagos ni notas internas). */
+export function camposCoordinacion(t: Table): Field[] {
+  return t.fields.filter((f) => !esAntiguo(f) && COORDINADOR.camposClientes.includes(f.name));
+}
+
+export const editableCoordinacion = (f: Field) => COORDINADOR.editablesClientes.includes(f.name) && !esSoloLectura(f);
+
+/** Ruta base de cada tabla que el usuario puede abrir; los clientes, en su sección si no ve Clientes. */
+export function rutasVisibles(u: Usuario, esquema: Table[]): Record<string, string> {
+  const rutas: Record<string, string> = {};
+  for (const x of esquema) if (puedeVerTabla(u, x.id)) rutas[x.id] = rutaTabla(x);
+  if (!rutas[TABLAS.clientes] && puedeCoordinar(u)) rutas[TABLAS.clientes] = COORDINADOR.ruta;
+  return rutas;
 }
 
 /**
@@ -66,8 +81,6 @@ export function campoEditable(u: Usuario, f: Field, t: Table): boolean {
  */
 export function campoVisible(u: Usuario, f: Field, t?: Table): boolean {
   if (esAntiguo(f) || CAMPOS_OCULTOS.includes(f.name)) return false;
-  // El coordinador ve de Clientes solo la lista permitida (nunca precios ni pagos).
-  if (esCoordinador(u) && t?.id === TABLAS.clientes && !COORDINADOR.camposClientes.includes(f.name)) return false;
   const ocultar = t ? (GALERIAS[t.id]?.ocultar as string[] | undefined) : undefined;
   if (ocultar?.includes(f.name)) return false;
   const destino = f.options?.linkedTableId;
@@ -110,11 +123,13 @@ export async function navegacion(u: Usuario) {
   ];
   const item = (t: Table) => ({ id: t.id, titulo: titulo(t), href: rutaTabla(t) });
   const calendario = { id: "calendario", titulo: "Calendario", href: "/calendario" };
-  // Equipo: Tareas y Calendario. Coordinador: además Clientes (sin precios). Administrador: todo e Inicio.
+  const coordinador = { id: "coordinador", titulo: COORDINADOR.titulo, href: COORDINADOR.ruta };
+  // Equipo: Tareas y Calendario. Coordinador: su sección, Tareas y Calendario. Administrador: todo e Inicio.
+  if (esCoordinador(u)) return { principal: [coordinador, ...principal.map(item), calendario], mas: mas.map(item) };
   if (!esAdmin(u)) return { principal: [...principal.map(item), calendario], mas: mas.map(item) };
   return {
     principal: [{ id: "inicio", titulo: "Inicio", href: "/inicio" }, ...principal.map(item)],
-    mas: [calendario, ...mas.map(item)],
+    mas: [calendario, coordinador, ...mas.map(item)],
   };
 }
 

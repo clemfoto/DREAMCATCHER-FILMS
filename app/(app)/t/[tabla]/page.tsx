@@ -4,7 +4,7 @@ import { getRegistros } from "@/lib/airtable";
 import { contextoTabla } from "@/lib/contexto";
 import { puedeCrear, rutaTabla, titulo } from "@/lib/esquema";
 import { buscar, filtrarOpcion, ordenar } from "@/lib/lista";
-import { colorOpcion } from "@/lib/formato";
+import Filtros from "@/components/Filtros";
 import Generica from "@/components/vistas/Generica";
 import Clientes from "@/components/vistas/Clientes";
 import Tareas from "@/components/vistas/Tareas";
@@ -68,38 +68,5 @@ export default async function Lista({ params, searchParams }: Props) {
         </Link>
       )}
     </>
-  );
-}
-
-function Filtros({ base, q, activo, opciones }: { base: string; q: string; activo?: string; opciones: string[] }) {
-  const url = (op?: string) => {
-    const p = new URLSearchParams();
-    if (q) p.set("q", q);
-    if (op) p.set("f", op);
-    const s = p.toString();
-    return s ? `${base}?${s}` : base;
-  };
-  return (
-    <nav className="filtros" aria-label="Filtrar">
-      <Link href={url()} className={`filtro ${!activo ? "activo" : ""}`} replace scroll={false}>
-        Todos
-      </Link>
-      {opciones.map((op) => {
-        const [bg, fg] = colorOpcion(op);
-        const on = activo === op;
-        return (
-          <Link
-            key={op}
-            href={url(op)}
-            replace
-            scroll={false}
-            className={`filtro ${on ? "activo" : ""}`}
-            style={on ? undefined : { background: bg, color: fg, borderColor: "transparent" }}
-          >
-            {op}
-          </Link>
-        );
-      })}
-    </nav>
   );
 }

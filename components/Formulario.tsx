@@ -10,14 +10,17 @@ export default function Formulario({
   registro,
   campos,
   volver,
+  guardar,
 }: {
   tabla: string;
   registro: string | null;
   campos: CampoForm[];
   volver: string;
+  /** Acción de guardado propia (p. ej. la de la sección Coordinador). */
+  guardar?: (estado: EstadoForm, form: FormData) => Promise<EstadoForm>;
 }) {
   const [estado, accion, guardando] = useActionState<EstadoForm, FormData>(
-    guardarRegistro.bind(null, tabla, registro),
+    guardar ?? guardarRegistro.bind(null, tabla, registro),
     {},
   );
   return (
