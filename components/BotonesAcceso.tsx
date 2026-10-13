@@ -2,6 +2,12 @@
 import { useState, useTransition } from "react";
 import { cancelarInvitacion, cambiarRol, generarInvitacion, type ResultadoAcceso } from "@/app/(app)/t/acceso";
 
+const DESCRIPCION_ROL = {
+  Administrador: "Ve y edita todo",
+  Coordinador: "Clientes sin precios: elige el team. Tareas y Calendario",
+  Equipo: "Solo Tareas y Calendario",
+};
+
 export default function BotonesAcceso({
   id,
   rol,
@@ -52,18 +58,18 @@ export default function BotonesAcceso({
   return (
     <>
       <div className="rol-selector" role="radiogroup" aria-label="Rol">
-        {(["Administrador", "Equipo"] as const).map((r) => (
+        {(["Administrador", "Coordinador", "Equipo"] as const).map((r) => (
           <button
             key={r}
             type="button"
             role="radio"
             aria-checked={rol === r}
             className={`rol-opcion ${rol === r ? "activo" : ""}`}
-            disabled={pendiente || rol === r || (esYo && r === "Equipo")}
+            disabled={pendiente || rol === r || (esYo && r !== "Administrador")}
             onClick={() => ejecutar(() => cambiarRol(id, r))}
           >
             <strong>{r}</strong>
-            <small>{r === "Administrador" ? "Ve y edita todo" : "Solo Tareas y Calendario"}</small>
+            <small>{DESCRIPCION_ROL[r]}</small>
           </button>
         ))}
       </div>

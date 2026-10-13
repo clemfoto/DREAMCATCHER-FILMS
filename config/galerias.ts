@@ -7,7 +7,7 @@
  * los campos, por su nombre tal como aparece en Airtable.
  */
 
-export type Rol = "Administrador" | "Equipo";
+export type Rol = "Administrador" | "Coordinador" | "Equipo";
 
 export const TABLAS = {
   clientes: "tblzsfM8s8Grq2lwU",
@@ -27,6 +27,7 @@ export const EQUIPO = {
   rol: "Rol",
   activo: "Activo",
   rolAdmin: "Administrador" as Rol,
+  rolCoordinador: "Coordinador" as Rol,
   /** Acceso con contraseña: cada persona tiene su propio código de invitación. */
   codigo: "Código de invitación",
   estadoInvitacion: "Estado invitación",
@@ -39,6 +40,30 @@ export const EQUIPO = {
  * El calendario les muestra los eventos y entregas aunque no puedan abrir esas tablas.
  */
 export const TABLAS_ROL_EQUIPO: string[] = [TABLAS.tareas];
+
+/**
+ * Rol "Coordinador" (p. ej. quien organiza el personal de cada evento): ve los clientes sin
+ * precios ni pagos y elige el team. Además tiene Tareas y Calendario, como el rol Equipo.
+ * Sin Inicio, Entrega, Leads, Contabilidad, Gastos ni Equipo.
+ */
+export const COORDINADOR = {
+  tablas: [TABLAS.clientes, TABLAS.tareas] as string[],
+  /** Campos de Clientes que ve (el resto, como Precio o Moneda, no le llega nunca). */
+  camposClientes: [
+    "Nombre del Cliente",
+    "Fecha del Evento",
+    "Tipo de Servicio",
+    "Venue",
+    "Estado del Cliente",
+    "Team Members",
+    "Confirmados",
+    "Archivos Adjuntos",
+    "Solicitudes Especiales",
+    "Tareas",
+  ],
+  /** Los únicos campos de Clientes que puede cambiar. No crea ni borra clientes. */
+  editablesClientes: ["Team Members", "Archivos Adjuntos"],
+};
 
 /** Barra inferior del móvil (el resto de tablas va en "Más"). */
 export const NAV_PRINCIPAL: string[] = [TABLAS.clientes, TABLAS.tareas, TABLAS.entrega, TABLAS.leads];

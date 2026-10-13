@@ -110,7 +110,7 @@ const esquema = {
   ]],
   [T.equipo]: ["Equipo", [
     ["fldEquNombre0000", "Nombre", "singleLineText"],
-    ["fldEquRol0000000", "Rol", "singleSelect", ch("Administrador", "Equipo")],
+    ["fldEquRol0000000", "Rol", "singleSelect", ch("Administrador", "Coordinador", "Equipo")],
     ["fldEquEmail00000", "Email", "email"],
     ["fldEquTelefono00", "Teléfono", "phoneNumber"],
     ["fldEquTelegram00", "Usuario Telegram", "singleLineText"],
@@ -153,13 +153,15 @@ function crear(tid, fields, hace = 0) {
   return r;
 }
 
-// Contraseña de prueba: demo1234. Sofía tiene una invitación pendiente (código DCF-TEST-2345).
+// Contraseña de prueba: demo1234 (admin@, socio@, equipo@ y coordinador@dreamcatcher.test). Sofía tiene una invitación pendiente (código DCF-TEST-2345).
 const clave = cifrar("demo1234");
 const ana = crear(T.equipo, { Nombre: "Ana Torres", Rol: "Administrador", Email: "admin@dreamcatcher.test", Activo: true, Teléfono: "+52 55 1234 5678", "Estado invitación": "Usada", "Clave (cifrada)": clave });
 const luis = crear(T.equipo, { Nombre: "Luis Méndez", Rol: "Equipo", Email: "equipo@dreamcatcher.test", Activo: true, "Estado invitación": "Usada", "Clave (cifrada)": clave });
 const sofi = crear(T.equipo, { Nombre: "Sofía Ruiz", Rol: "Equipo", Email: "sofia@dreamcatcher.test", Activo: true, "Estado invitación": "Pendiente", "Código de invitación": "DCF-TEST-2345" });
 crear(T.equipo, { Nombre: "Pedro Gil", Rol: "Equipo", Email: "pedro@dreamcatcher.test", Activo: false });
 const beto = crear(T.equipo, { Nombre: "Beto Salas", Rol: "Administrador", Email: "socio@dreamcatcher.test", Activo: true, "Estado invitación": "Usada", "Clave (cifrada)": clave });
+// Coordinador: organiza el personal de los eventos (ve clientes sin precios).
+crear(T.equipo, { Nombre: "Ricardo", Rol: "Coordinador", Email: "coordinador@dreamcatcher.test", Activo: true, "Estado invitación": "Usada", "Clave (cifrada)": clave, "Telegram Chat ID": "777" });
 
 const c1 = crear(T.clientes, { "Nombre del Cliente": "Mariana & Diego", "Fecha del Evento": dia(12), "Tipo de Servicio": "Boda", Venue: "Hacienda San Gabriel", Precio: 48000, "Estado del Cliente": "Confirmado", "Team Members": [ana.id, luis.id], Notificado: true, Prioridad: "Alta", "Solicitudes Especiales": "Drone en la ceremonia.\nVideo corto para redes." });
 const c2 = crear(T.clientes, { "Nombre del Cliente": "Lucía — XV años", "Fecha del Evento": dia(30), "Tipo de Servicio": "Cumpleaños", Venue: "Salón Jardín Real", Precio: 22000, "Estado del Cliente": "Pendiente de Pago", "Team Members": [sofi.id], Notificado: true });

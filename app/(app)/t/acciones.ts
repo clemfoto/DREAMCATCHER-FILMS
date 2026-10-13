@@ -14,7 +14,7 @@ import {
   type Table,
 } from "@/lib/airtable";
 import { requireUsuario, type Usuario } from "@/lib/auth";
-import { campo, campoVisible, esAdmin, esSoloLectura, puedeVerTabla, rutaTabla, tablaPorId } from "@/lib/esquema";
+import { campo, campoEditable, esAdmin, puedeCrear, puedeVerTabla, rutaTabla, tablaPorId } from "@/lib/esquema";
 import { localAIso } from "@/lib/formato";
 import { moverEntregas, procesarClientes } from "@/lib/automatizaciones";
 import { telegramConfigurado } from "@/lib/telegram";
@@ -91,10 +91,11 @@ export async function guardarRegistro(
   form: FormData,
 ): Promise<EstadoForm> {
   const { u, t } = await tablaEditable(tableId);
+  if (!recordId && !puedeCrear(u, t.id)) forbidden();
   const fields: Record<string, unknown> = {};
   try {
     for (const f of t.fields) {
-      if (!form.has(`p:${f.id}`) || esSoloLectura(f) || !campoVisible(u, f, t)) continue;
+      if (!form.has(`p:${f.id}`) || !campoEditable(u, f, t)) continue;
       const v = leerCampo(f, form);
       if (v !== undefined) fields[f.name] = v;
     }

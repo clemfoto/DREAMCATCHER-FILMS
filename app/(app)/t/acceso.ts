@@ -49,10 +49,10 @@ export async function cancelarInvitacion(id: string): Promise<ResultadoAcceso> {
   });
 }
 
-/** Administrador (ve todo) o Equipo (solo Tareas y Calendario). */
+/** Administrador (ve todo), Coordinador (clientes sin precios y team) o Equipo (Tareas y Calendario). */
 export async function cambiarRol(id: string, rol: Rol): Promise<ResultadoAcceso> {
   const yo = await requireAdmin();
-  if (rol !== "Administrador" && rol !== "Equipo") return { error: "Rol no válido." };
+  if (rol !== "Administrador" && rol !== "Coordinador" && rol !== "Equipo") return { error: "Rol no válido." };
   if (id === yo.id && rol !== EQUIPO.rolAdmin) return { error: "No puedes quitarte el rol de Administrador a ti mismo." };
   return guardar(id, { [EQUIPO.rol]: rol });
 }

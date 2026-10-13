@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { contextoTabla } from "@/lib/contexto";
-import { rutaTabla, titulo } from "@/lib/esquema";
+import { forbidden } from "next/navigation";
+import { puedeCrear, rutaTabla, titulo } from "@/lib/esquema";
 import { camposFormulario } from "@/lib/formulario";
 import Formulario from "@/components/Formulario";
 
@@ -15,6 +16,7 @@ export default async function Nuevo({
 }) {
   const [{ tabla }, sp] = await Promise.all([params, searchParams]);
   const ctx = await contextoTabla(tabla);
+  if (!puedeCrear(ctx.u, ctx.t.id)) forbidden();
   // ?pre_<idCampo>=valor precarga un campo (p. ej. el cliente al crear una tarea desde su ficha).
   const pre = Object.fromEntries(
     Object.entries(sp)

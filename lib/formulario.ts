@@ -1,7 +1,7 @@
 import "server-only";
 import type { AirRecord } from "@/lib/airtable";
 import type { Contexto } from "@/lib/contexto";
-import { campoPrincipal, esSoloLectura } from "@/lib/esquema";
+import { campoEditable, campoPrincipal } from "@/lib/esquema";
 import { isoALocal, texto } from "@/lib/formato";
 
 /** Descripción serializable de un campo para el formulario (se pasa a un componente cliente). */
@@ -21,7 +21,9 @@ export type CampoForm = {
 /** Campos editables de la tabla con su valor actual (o el precargado en la URL). */
 export function camposFormulario(ctx: Contexto, r: AirRecord | null, pre: Record<string, string> = {}): CampoForm[] {
   const principal = campoPrincipal(ctx.t);
-  const editables = ctx.campos.filter((f) => !esSoloLectura(f) && f.type !== "multipleAttachments" && f.type !== "barcode");
+  const editables = ctx.campos.filter(
+    (f) => campoEditable(ctx.u, f, ctx.t) && f.type !== "multipleAttachments" && f.type !== "barcode",
+  );
   editables.sort((a, b) => (a.id === principal.id ? -1 : b.id === principal.id ? 1 : 0));
 
   return editables.map((f) => {

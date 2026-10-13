@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getRegistros } from "@/lib/airtable";
 import { contextoTabla } from "@/lib/contexto";
-import { rutaTabla, titulo } from "@/lib/esquema";
+import { puedeCrear, rutaTabla, titulo } from "@/lib/esquema";
 import { buscar, filtrarOpcion, ordenar } from "@/lib/lista";
 import { colorOpcion } from "@/lib/formato";
 import Generica from "@/components/vistas/Generica";
@@ -37,6 +37,7 @@ export default async function Lista({ params, searchParams }: Props) {
 
   const Vista = (ctx.g.vista && VISTAS[ctx.g.vista]) || Generica;
   const base = rutaTabla(ctx.t);
+  const crear = puedeCrear(ctx.u, ctx.t.id);
 
   return (
     <>
@@ -44,9 +45,11 @@ export default async function Lista({ params, searchParams }: Props) {
         <div className="cabecera-fila">
           <h1 className="titulo">{titulo(ctx.t)}</h1>
           <span className="muted">{regs.length === total ? total : `${regs.length} de ${total}`}</span>
-          <Link href={`${base}/nuevo`} className="btn btn-primario btn-nuevo-escritorio">
-            + Nuevo
-          </Link>
+          {crear && (
+            <Link href={`${base}/nuevo`} className="btn btn-primario btn-nuevo-escritorio">
+              + Nuevo
+            </Link>
+          )}
         </div>
         <form className="buscador" action={base} role="search">
           {f && <input type="hidden" name="f" value={f} />}
@@ -57,11 +60,13 @@ export default async function Lista({ params, searchParams }: Props) {
 
       {regs.length ? <Vista ctx={ctx} regs={regs} /> : <p className="vacio-lista">{q || f ? "No hay resultados." : "Todavía no hay registros."}</p>}
 
-      <Link href={`${base}/nuevo`} className="fab" aria-label="Nuevo registro">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-      </Link>
+      {crear && (
+        <Link href={`${base}/nuevo`} className="fab" aria-label="Nuevo registro">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </Link>
+      )}
     </>
   );
 }

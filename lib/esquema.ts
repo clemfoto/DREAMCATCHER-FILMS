@@ -1,6 +1,6 @@
 import "server-only";
 import { getEsquema, getRegistros, type Field, type Table } from "@/lib/airtable";
-import { CAMPOS_OCULTOS, CAMPOS_SOLO_BOTONES, EQUIPO, GALERIAS, TABLAS, NAV_MAS, NAV_PRINCIPAL, TABLAS_ROL_EQUIPO } from "@/config/galerias";
+import { CAMPOS_OCULTOS, CAMPOS_SOLO_BOTONES, COORDINADOR, EQUIPO, GALERIAS, TABLAS, NAV_MAS, NAV_PRINCIPAL, TABLAS_ROL_EQUIPO } from "@/config/galerias";
 import type { Usuario } from "@/lib/auth";
 
 /** Tipos calculados por Airtable: se muestran pero no se editan. */
@@ -42,8 +42,22 @@ export function titulo(t: Table): string {
 
 export const esAdmin = (u: Usuario) => u.rol === EQUIPO.rolAdmin;
 
+export const esCoordinador = (u: Usuario) => u.rol === EQUIPO.rolCoordinador;
+
 export function puedeVerTabla(u: Usuario, tableId: string): boolean {
-  return esAdmin(u) || TABLAS_ROL_EQUIPO.includes(tableId);
+  return esAdmin(u) || TABLAS_ROL_EQUIPO.includes(tableId) || (esCoordinador(u) && COORDINADOR.tablas.includes(tableId));
+}
+
+/** El coordinador solo edita el team y los archivos de un cliente existente; no crea clientes. */
+export function puedeCrear(u: Usuario, tableId: string): boolean {
+  return puedeVerTabla(u, tableId) && !(esCoordinador(u) && tableId === TABLAS.clientes);
+}
+
+/** Campo que el usuario puede cambiar desde un formulario o subiendo un archivo. */
+export function campoEditable(u: Usuario, f: Field, t: Table): boolean {
+  if (!campoVisible(u, f, t) || esSoloLectura(f)) return false;
+  if (esCoordinador(u) && t.id === TABLAS.clientes) return COORDINADOR.editablesClientes.includes(f.name);
+  return true;
 }
 
 /**
@@ -52,6 +66,8 @@ export function puedeVerTabla(u: Usuario, tableId: string): boolean {
  */
 export function campoVisible(u: Usuario, f: Field, t?: Table): boolean {
   if (esAntiguo(f) || CAMPOS_OCULTOS.includes(f.name)) return false;
+  // El coordinador ve de Clientes solo la lista permitida (nunca precios ni pagos).
+  if (esCoordinador(u) && t?.id === TABLAS.clientes && !COORDINADOR.camposClientes.includes(f.name)) return false;
   const ocultar = t ? (GALERIAS[t.id]?.ocultar as string[] | undefined) : undefined;
   if (ocultar?.includes(f.name)) return false;
   const destino = f.options?.linkedTableId;
@@ -94,7 +110,7 @@ export async function navegacion(u: Usuario) {
   ];
   const item = (t: Table) => ({ id: t.id, titulo: titulo(t), href: rutaTabla(t) });
   const calendario = { id: "calendario", titulo: "Calendario", href: "/calendario" };
-  // El rol Equipo solo tiene Tareas y Calendario; el Administrador, además, el panel de inicio.
+  // Equipo: Tareas y Calendario. Coordinador: además Clientes (sin precios). Administrador: todo e Inicio.
   if (!esAdmin(u)) return { principal: [...principal.map(item), calendario], mas: mas.map(item) };
   return {
     principal: [{ id: "inicio", titulo: "Inicio", href: "/inicio" }, ...principal.map(item)],

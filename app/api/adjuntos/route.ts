@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { revalidateTag } from "next/cache";
 import { crearRegistro, subirAdjunto, tagTabla } from "@/lib/airtable";
 import { getUsuario } from "@/lib/auth";
-import { campo, campoVisible, puedeVerTabla, rutaTabla, tablaPorId } from "@/lib/esquema";
+import { campo, campoEditable, puedeVerTabla, rutaTabla, tablaPorId } from "@/lib/esquema";
 import { hoyISO } from "@/lib/formato";
 import { GALERIAS, TABLAS } from "@/config/galerias";
 
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const t = await tablaPorId(String(form.get("tabla") ?? ""));
   if (!t || !puedeVerTabla(u, t.id)) return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   const f = t.fields.find((x) => x.id === form.get("campo"));
-  if (!f || f.type !== "multipleAttachments" || !campoVisible(u, f, t)) {
+  if (!f || f.type !== "multipleAttachments" || !campoEditable(u, f, t)) {
     return NextResponse.json({ error: "Campo no válido" }, { status: 400 });
   }
   const archivo = form.get("archivo");

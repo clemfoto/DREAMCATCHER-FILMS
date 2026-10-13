@@ -53,6 +53,7 @@ Reglas:
 ## Permisos
 
 - **Administrador:** acceso a todo, incluidas Contabilidad, Gastos y Equipo.
+- **Coordinador** (organiza el personal de cada evento): Clientes con solo nombre, fecha, servicio, venue, estado, team, confirmados, archivos adjuntos y solicitudes especiales (`COORDINADOR` en `config/galerias.ts`); solo puede cambiar el team y los archivos, no crea ni borra clientes. Además Tareas y Calendario. Nunca precios, pagos, Entrega, Leads, Contabilidad, Gastos, Equipo ni Inicio. Recibe por Telegram cada cliente nuevo (sin precio) y las confirmaciones del team.
 - **Equipo:** solo Tareas y Calendario (en el calendario ve eventos, entregas y tareas, sin poder abrir Clientes ni Entrega). En sus tareas ve nombre, fecha, venue y servicio del cliente, nunca precios ni otros datos (`resumenClientes`). Sin panel de inicio, Clientes, Entrega, Leads, Contabilidad, Gastos ni Equipo.
 - El rol se elige en la ficha de la persona (Equipo → "Rol y acceso a la app").
 - Los permisos se comprueban en el servidor, no solo ocultando botones.

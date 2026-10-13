@@ -49,7 +49,7 @@ export function sumarDias(iso: string, dias: number): string {
 /** "2026-09-26T18:42:26.000Z" → "2026-09-26" en la zona del negocio. */
 const fechaLocal = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: ZONA_HORARIA }).format(new Date(iso));
 
-type Persona = { id: string; nombre: string; chatId: string };
+type Persona = { id: string; nombre: string; chatId: string; coordinador: boolean };
 
 async function equipo(): Promise<Map<string, Persona>> {
   const regs = await getRegistrosSinCache(EQUIPO.tabla);
@@ -60,9 +60,22 @@ async function equipo(): Promise<Map<string, Persona>> {
         id: r.id,
         nombre: String(r.fields[EQUIPO.nombre] ?? "Sin nombre"),
         chatId: String(r.fields[C.telegramChatId] ?? "").trim(),
+        coordinador: String(r.fields[EQUIPO.rol] ?? "") === EQUIPO.rolCoordinador && r.fields[EQUIPO.activo] === true,
       },
     ]),
   );
+}
+
+/** Coordinadores activos (organizan el personal de cada evento). */
+const coordinadores = (personas: Map<string, Persona>) => [...personas.values()].filter((p) => p.coordinador);
+
+/** Mensaje a cada coordinador con Telegram. Devuelve los que no lo tienen conectado. */
+async function avisarCoordinadores(personas: Map<string, Persona>, texto: string): Promise<string[]> {
+  const sin: string[] = [];
+  for (const p of coordinadores(personas)) {
+    if (!p.chatId || !(await enviar(p.chatId, texto))) sin.push(p.nombre);
+  }
+  return sin;
 }
 
 const nombres = (lista: string[], personas: Map<string, Persona>) =>
@@ -93,6 +106,23 @@ export async function procesarClientes(base: string): Promise<string[]> {
     if (f[C.clienteNotificado] !== true) {
       const sinTelegram = team.filter((id) => !personas.get(id)?.chatId).map((id) => personas.get(id)?.nombre ?? "?");
       const precio = dinero(f[str(gCli.precio)]);
+      const servicio = texto(f[str(gCli.servicio)]);
+      // Al coordinador: los datos del evento, sin precio, para que organice el team.
+      const coordSinTelegram = await avisarCoordinadores(
+        personas,
+        [
+          `🎬 <b>Nuevo evento: ${h(nombre)}</b>`,
+          `📅 ${h(fecha(fechaEvento) || "Sin fecha")}`,
+          `📍 ${h(texto(f[str(gCli.venue)]) || "Sin venue")}`,
+          servicio ? `🎥 ${h(servicio)}` : "",
+          `👥 ${team.length ? h(nombres(team, personas)) : "Sin team todavía"}`,
+          f[C.clienteSolicitudes] ? `📝 ${h(texto(f[C.clienteSolicitudes]))}` : "",
+          `\n${team.length ? "Revisa el team del evento." : "Elige el team del evento en la app."}`,
+          `<a href="${base}/t/clientes/${r.id}">Abrir evento</a>`,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      );
       const ok = await enviarAdmins(
         [
           `🎬 <b>Nuevo cliente: ${h(nombre)}</b>`,
@@ -102,6 +132,7 @@ export async function procesarClientes(base: string): Promise<string[]> {
           `👥 ${h(nombres(team, personas))}`,
           f[C.clienteSolicitudes] ? `📝 ${h(texto(f[C.clienteSolicitudes]))}` : "",
           sinTelegram.length ? `\n⚠️ Sin Telegram conectado: ${h(sinTelegram.join(", "))}` : "",
+          coordSinTelegram.length ? `⚠️ No se pudo avisar al coordinador (sin Telegram): ${h(coordSinTelegram.join(", "))}` : "",
           `\n<a href="${base}/t/clientes/${r.id}">Abrir en la app</a>`,
         ]
           .filter(Boolean)
@@ -112,7 +143,7 @@ export async function procesarClientes(base: string): Promise<string[]> {
         log.push(`Aviso de nuevo cliente: ${nombre}`);
       }
 
-      // Entrega automática: 9 semanas después del evento.
+      // Entrega automática: N días después del evento (AUTOMATIZACIONES.diasEntrega).
       if (fechaEvento && ids(f[C.clienteEntrega]).length === 0) {
         await crearRegistro(TABLAS.entrega, {
           [str(gEnt.cliente)]: [r.id],
@@ -195,9 +226,12 @@ export async function confirmarPresencia(persona: Persona, clienteId: string): P
 
   await actualizarRegistro(TABLAS.clientes, r.id, { [C.clienteConfirmados]: [...confirmados, persona.id] });
   invalidar(TABLAS.clientes, EQUIPO.tabla);
-  await enviarAdmins(
-    `✅ <b>${h(persona.nombre)}</b> confirmó su presencia en <b>${h(nombre)}</b> (${h(fecha(r.fields[str(gCli.fecha)]))}).`,
-  );
+  const aviso = `✅ <b>${h(persona.nombre)}</b> confirmó su presencia en <b>${h(nombre)}</b> (${h(fecha(r.fields[str(gCli.fecha)]))}).`;
+  await enviarAdmins(aviso);
+  // El coordinador también sigue las confirmaciones del team (si no es él quien confirma).
+  const personas = await equipo();
+  personas.delete(persona.id);
+  await avisarCoordinadores(personas, aviso);
   return `¡Listo! Confirmaste tu presencia en ${nombre}. 🙌`;
 }
 

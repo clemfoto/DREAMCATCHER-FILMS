@@ -1746,7 +1746,7 @@ textarea.input {
 
 .rol-selector {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
   margin: 10px 0 4px;
 }

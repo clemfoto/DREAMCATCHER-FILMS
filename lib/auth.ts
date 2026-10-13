@@ -14,7 +14,8 @@ export function tieneAcceso(r: AirRecord): boolean {
 
 export function aUsuario(r: AirRecord): Usuario {
   const email = String(r.fields[EQUIPO.email] ?? "").trim().toLowerCase();
-  const rol = String(r.fields[EQUIPO.rol] ?? "") === EQUIPO.rolAdmin ? "Administrador" : "Equipo";
+  const valor = String(r.fields[EQUIPO.rol] ?? "");
+  const rol: Rol = valor === EQUIPO.rolAdmin || valor === EQUIPO.rolCoordinador ? (valor as Rol) : "Equipo";
   return { id: r.id, nombre: String(r.fields[EQUIPO.nombre] ?? email), email, rol };
 }
 
